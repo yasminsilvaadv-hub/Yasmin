@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -10,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Building2 } from 'lucide-react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -37,7 +35,8 @@ export default function LoginPage() {
       .single()
 
     const slug = (membro?.organizacoes as { slug?: string } | null)?.slug
-    router.push(slug ? `/${slug}/dashboard` : '/nova-organizacao')
+    // Hard reload para garantir que o servidor veja a sessão nos cookies
+    window.location.href = slug ? `/${slug}/dashboard` : '/nova-organizacao'
   }
 
   return (
