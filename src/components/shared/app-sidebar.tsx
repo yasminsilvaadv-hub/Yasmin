@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -109,39 +110,114 @@ export function AppSidebar({
   orgSlug,
   orgNome,
   userEmail,
+  todasOrgs = [],
 }: {
   orgSlug: string
   orgNome: string
   userEmail?: string
+  todasOrgs?: { id: string; nome: string; slug: string }[]
 }) {
   const pathname = usePathname()
   const router   = useRouter()
   const nav      = buildNav(orgSlug)
+  const [seletorAberto, setSeletorAberto] = React.useState(false)
 
   const initial = userEmail ? userEmail[0].toUpperCase() : '?'
 
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    window.location.href = '/login'
   }
+
+  function handleTrocarOrg(slug: string) {
+    setSeletorAberto(false)
+    window.location.href = `/${slug}/dashboard`
+  }
+
+  const outrasOrgs = todasOrgs.filter(o => o.slug !== orgSlug)
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
-      {/* ── Cabeçalho / Marca ───────────────── */}
-      <SidebarHeader className="px-4 py-3 border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5">
+      {/* ── Marca AltoQI (fixa) ─────────────── */}
+      <SidebarHeader className="px-4 pt-4 pb-0 border-b-0">
+        <div className="flex items-center gap-2.5 mb-3">
           <div className="flex size-8 shrink-0 items-center justify-center">
             <AltoQILogo className="size-8" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13.5px] font-bold text-sidebar-foreground leading-tight tracking-tight" title={orgNome}>
-              {orgNome}
+            <p className="text-[15px] font-extrabold text-sidebar-foreground leading-tight tracking-tight">
+              AltoQI
             </p>
-            <p className="text-[10px] text-muted-foreground/60 tracking-widest uppercase mt-0.5 dark:text-sidebar-foreground/35">
+            <p className="text-[10px] text-muted-foreground/60 tracking-widest uppercase dark:text-sidebar-foreground/35">
               Gestão Societária
             </p>
           </div>
+        </div>
+
+        {/* ── Seletor de empresa ─────────────── */}
+        <div className="relative mb-3">
+          <button
+            onClick={() => setSeletorAberto(v => !v)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-sidebar-accent/60 hover:bg-sidebar-accent transition-colors border border-sidebar-border/60"
+          >
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary text-[10px] font-bold">
+              {orgNome.charAt(0)}
+            </div>
+            <span className="flex-1 text-left text-[12.5px] font-semibold text-sidebar-foreground truncate min-w-0">
+              {orgNome}
+            </span>
+            <ChevronDown className={cn(
+              'size-3.5 shrink-0 text-sidebar-foreground/40 transition-transform duration-200',
+              seletorAberto && 'rotate-180'
+            )} />
+          </button>
+
+          {/* Dropdown de empresas */}
+          {seletorAberto && (
+            <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-sidebar-border bg-sidebar shadow-lg py-1">
+              {/* Empresa atual */}
+              <div className="px-3 py-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+                  Empresa atual
+                </p>
+              </div>
+              <div className="px-2 pb-1">
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-primary/8">
+                  <div className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/15 text-primary text-[10px] font-bold">
+                    {orgNome.charAt(0)}
+                  </div>
+                  <span className="text-[12.5px] font-semibold text-primary truncate">{orgNome}</span>
+                  <span className="ml-auto size-1.5 rounded-full bg-primary shrink-0" />
+                </div>
+              </div>
+
+              {/* Outras empresas */}
+              {outrasOrgs.length > 0 && (
+                <>
+                  <div className="px-3 pt-2 pb-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+                      Outras empresas
+                    </p>
+                  </div>
+                  <div className="px-2 pb-1 space-y-0.5">
+                    {outrasOrgs.map(o => (
+                      <button
+                        key={o.slug}
+                        onClick={() => handleTrocarOrg(o.slug)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-sidebar-accent/70 transition-colors"
+                      >
+                        <div className="flex size-5 shrink-0 items-center justify-center rounded bg-sidebar-foreground/10 text-sidebar-foreground/60 text-[10px] font-bold">
+                          {o.nome.charAt(0)}
+                        </div>
+                        <span className="text-[12.5px] text-sidebar-foreground/70 truncate">{o.nome}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </SidebarHeader>
 

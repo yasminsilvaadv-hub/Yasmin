@@ -33,9 +33,25 @@ export default async function OrgLayout({ children, params }: Props) {
 
   if (!membro) redirect('/login')
 
+  // Busca todas as organizações que o usuário é membro
+  const { data: membrosOrgs } = await supabase
+    .from('membros')
+    .select('organizacoes(id, nome, slug)')
+    .eq('user_id', user.id)
+
+  const todasOrgs = (membrosOrgs ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map(m => m.organizacoes as any as { id: string; nome: string; slug: string } | null)
+    .filter(Boolean) as { id: string; nome: string; slug: string }[]
+
   return (
     <SidebarProvider>
-      <AppSidebar orgSlug={orgSlug} orgNome={org.nome} userEmail={user.email} />
+      <AppSidebar
+        orgSlug={orgSlug}
+        orgNome={org.nome}
+        userEmail={user.email}
+        todasOrgs={todasOrgs}
+      />
       <SidebarInset>
         <TopBar userEmail={user.email} />
         <main className="flex-1 overflow-auto">
