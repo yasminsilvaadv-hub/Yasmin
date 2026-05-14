@@ -2,26 +2,174 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+}
+
+@layer base {
+  /* ═══════════════════════════════════════════
+     LIGHT MODE  (AltoQI + Google Material 3)
+  ═══════════════════════════════════════════ */
+  :root {
+    /* ── Superfícies ─────────────────────────── */
+    --background:          210 20% 98%;      /* #F8FAFB — quase branco */
+    --foreground:          220 25% 9%;       /* #111827 — texto principal */
+
+    --card:                0 0% 100%;        /* branco puro */
+    --card-foreground:     220 25% 9%;
+
+    --popover:             0 0% 100%;
+    --popover-foreground:  220 25% 9%;
+
+    /* ── Marca: AltoQI #25CE7B ─────────────── */
+    --primary:             152 64% 48%;      /* #25CE7B */
+    --primary-foreground:  0 0% 100%;
+
+    --secondary:           210 16% 94%;
+    --secondary-foreground: 220 20% 22%;
+
+    --muted:               210 16% 95%;
+    --muted-foreground:    215 14% 46%;
+
+    --accent:              152 60% 95%;      /* verde bem claro no hover */
+    --accent-foreground:   152 64% 30%;
+
+    --destructive:         0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ── Estrutura ───────────────────────────── */
+    --border:              215 20% 90%;      /* #DDE3EC */
+    --input:               215 20% 90%;
+    --ring:                152 64% 48%;
+    --radius:              0.5rem;
+
+    /* ── Sidebar — CLARO (Google Workspace) ── */
+    --sidebar:                  220 20% 94%;        /* azul-cinza suave — contraste com fundo branco */
+    --sidebar-foreground:       220 18% 18%;        /* texto escuro */
+    --sidebar-primary:          152 64% 48%;        /* verde AltoQI */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent:           220 18% 88%;        /* hover — azul-cinza mais escuro */
+    --sidebar-accent-foreground: 220 18% 14%;       /* texto quase preto no hover */
+    --sidebar-border:           220 18% 87%;        /* borda levemente mais escura que o sidebar */
+    --sidebar-ring:             152 64% 48%;
+
+    /* ── Charts ─────────────────────────────── */
+    --chart-1: 152 64% 48%;   /* verde AltoQI */
+    --chart-2: 186 80% 42%;   /* ciano AltoQI #10AED5 */
+    --chart-3: 271 70% 62%;   /* roxo AltoQI */
+    --chart-4: 38 95% 55%;    /* laranja AltoQI */
+    --chart-5: 0 72% 55%;     /* vermelho */
+  }
+
+  /* ═══════════════════════════════════════════
+     DARK MODE
+  ═══════════════════════════════════════════ */
+  .dark {
+    --background:          224 18% 10%;      /* #141923 */
+    --foreground:          215 20% 92%;      /* #E3E8F0 */
+
+    --card:                224 18% 13%;      /* #1A2030 */
+    --card-foreground:     215 20% 92%;
+
+    --popover:             224 18% 13%;
+    --popover-foreground:  215 20% 92%;
+
+    --primary:             152 64% 48%;      /* verde mantido */
+    --primary-foreground:  0 0% 100%;
+
+    --secondary:           224 16% 18%;
+    --secondary-foreground: 215 16% 72%;
+
+    --muted:               224 16% 16%;
+    --muted-foreground:    215 12% 50%;
+
+    --accent:              152 50% 16%;      /* verde muito escuro */
+    --accent-foreground:   152 60% 60%;
+
+    --destructive:         0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border:              224 16% 20%;
+    --input:               224 16% 22%;
+    --ring:                152 64% 48%;
+
+    /* ── Sidebar dark ──────────────────────── */
+    --sidebar:                  224 22% 8%;
+    --sidebar-foreground:       215 18% 62%;
+    --sidebar-primary:          152 64% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent:           224 22% 14%;
+    --sidebar-accent-foreground: 215 18% 88%;
+    --sidebar-border:           224 22% 14%;
+    --sidebar-ring:             152 64% 48%;
+  }
+
+  /* ════════════════════════════════════════════
+     BASE GLOBALS
+  ════════════════════════════════════════════ */
+  * { @apply border-border; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ── Scrollbar fina ─────────────────────── */
+  ::-webkit-scrollbar               { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track         { background: transparent; }
+  ::-webkit-scrollbar-thumb         { background: hsl(var(--border)); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover   { background: hsl(var(--muted-foreground) / 0.35); }
+
+  /* ── Elevação de card ────────────────────── */
+  .card {
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.7),
+      0 1px 3px hsl(220 25% 9% / 0.04),
+      0 4px 8px -2px hsl(220 25% 9% / 0.04);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .card:hover {
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.9),
+      0 2px 4px hsl(220 25% 9% / 0.06),
+      0 8px 20px -4px hsl(220 25% 9% / 0.07);
+    transform: translateY(-1px);
+  }
+
+  /* ── Cabeçalhos de tabela ────────────────── */
+  th {
+    font-size: 0.675rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground) / 0.8);
+  }
+
+  /* ── Focus rings ─────────────────────────── */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* ── Transições base ─────────────────────── */
+  a, button {
+    transition: color 0.12s ease, background-color 0.12s ease,
+                border-color 0.12s ease, opacity 0.12s ease,
+                box-shadow 0.12s ease;
+  }
+
+  /* ── Seleção de texto ────────────────────── */
+  ::selection {
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--foreground));
   }
 }
