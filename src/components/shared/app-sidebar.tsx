@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   PieChart,
@@ -118,7 +118,6 @@ export function AppSidebar({
   todasOrgs?: { id: string; nome: string; slug: string }[]
 }) {
   const pathname = usePathname()
-  const router   = useRouter()
   const nav      = buildNav(orgSlug)
   const [seletorAberto, setSeletorAberto] = React.useState(false)
 
