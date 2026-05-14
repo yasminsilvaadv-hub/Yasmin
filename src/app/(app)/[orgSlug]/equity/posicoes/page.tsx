@@ -15,7 +15,6 @@ import {
 } from 'recharts'
 import { TrendingUpIcon, TrendingDownIcon, ChevronDownIcon, ChevronUpIcon, UsersIcon } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
