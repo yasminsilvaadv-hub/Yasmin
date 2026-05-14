@@ -70,6 +70,7 @@ function buildNav(orgSlug: string): NavItem[] {
         { label: 'Planos',             href: `${b}/equity/planos` },
         { label: 'Calendários',        href: `${b}/equity/calendarios` },
         { label: 'Contratos',          href: `${b}/equity/contratos` },
+        { label: 'Posições',           href: `${b}/equity/posicoes` },
       ],
     },
     { label: 'Stakeholders', href: `${b}/stakeholders`, icon: Users },

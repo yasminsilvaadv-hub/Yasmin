@@ -35,6 +35,7 @@ const SUBSECTIONS: Record<string, Record<string, string>> = {
     planos:      'Planos',
     calendarios: 'Calendários de vesting',
     contratos:   'Contratos',
+    posicoes:    'Posições',
   },
   configuracoes: {
     membros: 'Membros',
