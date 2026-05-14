@@ -330,7 +330,7 @@ function OrgChartCanvas({
       {subsidiarias.length === 0 && (
         <div className="relative z-10 flex justify-center">
           <p className="text-xs text-muted-foreground italic">
-            Nenhuma subsidiária configurada — use o botão "Gerenciar subsidiárias" acima.
+            Nenhuma subsidiária configurada — use o botão &quot;Gerenciar subsidiárias&quot; acima.
           </p>
         </div>
       )}
