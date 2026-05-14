@@ -12,6 +12,7 @@ import {
   ChevronDown,
   LogOut,
   BarChart3,
+  Settings2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -73,6 +74,12 @@ function buildNav(orgSlug: string): NavItem[] {
     },
     { label: 'Stakeholders', href: `${b}/stakeholders`, icon: Users },
     { label: 'Relatórios',   href: `${b}/relatorios`,   icon: BarChart3 },
+    {
+      label: 'Configurações', icon: Settings2,
+      children: [
+        { label: 'Membros',   href: `${b}/configuracoes/membros` },
+      ],
+    },
   ]
 }
 
@@ -175,7 +182,7 @@ export function AppSidebar({
 
         {/* Módulos com submenus */}
         <SidebarMenu className="gap-0.5 mb-4">
-          {nav.slice(2, -2).map((item) => {
+          {nav.slice(2, -3).map((item) => {
             if (!item.children) return null
             const isGroupActive = item.children.some((c) => pathname.startsWith(c.href))
             return (
@@ -246,8 +253,8 @@ export function AppSidebar({
         </div>
 
         {/* Stakeholders + Relatórios */}
-        <SidebarMenu className="gap-0.5">
-          {nav.slice(-2).map((item) => {
+        <SidebarMenu className="gap-0.5 mb-4">
+          {nav.slice(-3, -1).map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href! + '/')
             return (
               <SidebarMenuItem key={item.label}>
@@ -267,6 +274,78 @@ export function AppSidebar({
                   <span>{item.label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            )
+          })}
+        </SidebarMenu>
+
+        {/* Label: Configurações */}
+        <div className="px-2 pb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 select-none dark:text-sidebar-foreground/30">
+            Configurações
+          </p>
+        </div>
+
+        {/* Configurações com submenus */}
+        <SidebarMenu className="gap-0.5">
+          {nav.slice(-1).map((item) => {
+            if (!item.children) return null
+            const isGroupActive = item.children.some((c) => pathname.startsWith(c.href))
+            return (
+              <Collapsible
+                key={item.label}
+                defaultOpen={isGroupActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger render={<div className="w-full" />}>
+                    <SidebarMenuButton
+                      isActive={isGroupActive}
+                      className={cn(
+                        'rounded-lg h-9 text-[13.5px] gap-3 font-medium transition-all',
+                        isGroupActive
+                          ? 'text-primary bg-primary/8 dark:bg-primary/12 dark:text-primary'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground dark:text-sidebar-foreground/55 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground'
+                      )}
+                    >
+                      {item.icon && (
+                        <item.icon className={cn('size-4 shrink-0', isGroupActive ? 'text-primary' : 'text-sidebar-foreground/50')} />
+                      )}
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronDown className={cn(
+                        'size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180',
+                        isGroupActive ? 'text-primary/60' : 'text-sidebar-foreground/30'
+                      )} />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <SidebarMenuSub className="ml-6 border-l-2 border-sidebar-border pl-3 mt-0.5 mb-1 gap-0">
+                      {item.children.map((child) => {
+                        const active = pathname === child.href || pathname.startsWith(child.href + '/')
+                        return (
+                          <SidebarMenuSubItem key={child.href}>
+                            <SidebarMenuSubButton
+                              render={<Link href={child.href} />}
+                              isActive={active}
+                              className={cn(
+                                'text-[12.5px] py-1.5 rounded-md font-medium transition-all',
+                                active
+                                  ? 'text-primary bg-primary/8 dark:bg-primary/12'
+                                  : 'text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 dark:text-sidebar-foreground/45 dark:hover:text-sidebar-accent-foreground dark:hover:bg-sidebar-accent/50'
+                              )}
+                            >
+                              {active && (
+                                <span className="mr-1 inline-block size-1.5 rounded-full bg-primary shrink-0" />
+                              )}
+                              {child.label}
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             )
           })}
         </SidebarMenu>

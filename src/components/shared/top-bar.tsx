@@ -8,13 +8,14 @@ import { ChevronRightIcon, SunIcon, MoonIcon } from 'lucide-react'
 // ─── Breadcrumb map ───────────────────────────────────────────────────────────
 
 const SECTIONS: Record<string, string> = {
-  dashboard:      'Dashboard',
-  'cap-table':    'Cap Table',
-  ativos:         'Ativos',
-  governanca:     'Governança',
-  equity:         'Equity Plans',
-  stakeholders:   'Stakeholders',
-  relatorios:     'Relatórios',
+  dashboard:        'Dashboard',
+  'cap-table':      'Cap Table',
+  ativos:           'Ativos',
+  governanca:       'Governança',
+  equity:           'Equity Plans',
+  stakeholders:     'Stakeholders',
+  relatorios:       'Relatórios',
+  configuracoes:    'Configurações',
 }
 
 const SUBSECTIONS: Record<string, Record<string, string>> = {
@@ -34,6 +35,9 @@ const SUBSECTIONS: Record<string, Record<string, string>> = {
     planos:      'Planos',
     calendarios: 'Calendários de vesting',
     contratos:   'Contratos',
+  },
+  configuracoes: {
+    membros: 'Membros',
   },
 }
 
