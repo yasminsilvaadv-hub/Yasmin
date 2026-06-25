@@ -30,7 +30,7 @@ export default async function LivrosPage({ params }: PageProps) {
     supabase
       .from('livros_societarios')
       .select(
-        'id, natureza, numero_ordem, periodo_inicio, periodo_fim, formato, data_autenticacao, orgao_autenticador, operacao_id, created_at, orgao:orgaos_sociais ( id, nome )'
+        'id, natureza, numero_ordem, periodo_inicio, periodo_fim, formato, forma_autenticacao, local_autenticacao, data_autenticacao, orgao_autenticador, anotacoes, deliberacao, evento_id, operacao_id, created_at, orgao:orgaos_sociais ( id, nome )'
       )
       .eq('organizacao_id', org.id)
       .order('natureza', { ascending: true })
@@ -54,6 +54,11 @@ export default async function LivrosPage({ params }: PageProps) {
       data_autenticacao: l.data_autenticacao ?? null,
       orgao_autenticador: l.orgao_autenticador ?? null,
       operacao_id: (l as Record<string, unknown>).operacao_id as string | null ?? null,
+      forma_autenticacao: (l as Record<string, unknown>).forma_autenticacao as string | null ?? null,
+      local_autenticacao: (l as Record<string, unknown>).local_autenticacao as string | null ?? null,
+      anotacoes: (l as Record<string, unknown>).anotacoes as string | null ?? null,
+      deliberacao: (l as Record<string, unknown>).deliberacao as string | null ?? null,
+      evento_id: (l as Record<string, unknown>).evento_id as string | null ?? null,
       created_at: l.created_at,
       orgao: orgao
         ? { id: (orgao as { id: string; nome: string }).id, nome: (orgao as { id: string; nome: string }).nome }

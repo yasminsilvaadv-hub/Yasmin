@@ -341,6 +341,9 @@ export async function atualizarLivro(payload: {
   formato?: 'digital' | 'fisico'
   data_autenticacao?: string | null
   orgao_autenticador?: string | null
+  forma_autenticacao?: string | null
+  local_autenticacao?: string | null
+  anotacoes?: string | null
 }) {
   const supabase = await createClient()
 
@@ -351,6 +354,9 @@ export async function atualizarLivro(payload: {
   if ('formato' in payload) update.formato = payload.formato
   if ('data_autenticacao' in payload) update.data_autenticacao = payload.data_autenticacao ?? null
   if ('orgao_autenticador' in payload) update.orgao_autenticador = payload.orgao_autenticador ?? null
+  if ('forma_autenticacao' in payload) update.forma_autenticacao = payload.forma_autenticacao ?? null
+  if ('local_autenticacao' in payload) update.local_autenticacao = payload.local_autenticacao ?? null
+  if ('anotacoes' in payload) update.anotacoes = payload.anotacoes ?? null
 
   const { error } = await supabase
     .from('livros_societarios')
@@ -371,6 +377,9 @@ export async function criarLivro(payload: {
   formato: 'digital' | 'fisico'
   data_autenticacao: string | null
   orgao_autenticador: string | null
+  forma_autenticacao?: string | null
+  local_autenticacao?: string | null
+  anotacoes?: string | null
 }) {
   const supabase = await createClient()
   const orgId = await getOrgId(payload.orgSlug)
@@ -396,6 +405,9 @@ export async function criarLivro(payload: {
     formato: payload.formato,
     data_autenticacao: payload.data_autenticacao || null,
     orgao_autenticador: payload.orgao_autenticador || null,
+    forma_autenticacao: payload.forma_autenticacao ?? null,
+    local_autenticacao: payload.local_autenticacao ?? null,
+    anotacoes: payload.anotacoes ?? null,
     operacao_id: null,
   })
 

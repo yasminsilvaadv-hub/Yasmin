@@ -22,6 +22,7 @@ export interface NovaOperacaoData {
   origem_id?: string | null    // nome real no banco
   destino_id?: string | null   // nome real no banco
   preco_unitario?: number | null
+  contribuicao_capital_social?: number | null  // valor creditado ao capital social
   motivo?: string | null
   metadata?: Record<string, unknown>
 }
@@ -38,16 +39,17 @@ export async function criarOperacao(data: NovaOperacaoData) {
   if (orgErr || !org) return { error: 'Organização não encontrada' }
 
   const { error } = await supabase.from('operacoes_ativos').insert({
-    organizacao_id: org.id,
-    ativo_id:       data.ativo_id,
-    tipo_operacao:  data.tipo,        // nome real no banco
-    quantidade:     data.quantidade,
-    data_operacao:  data.data_operacao,
-    origem_id:      data.origem_id  ?? null,
-    destino_id:     data.destino_id ?? null,
-    preco_unitario: data.preco_unitario ?? null,
-    motivo:         data.motivo ?? null,
-    metadata:       data.metadata ?? null,
+    organizacao_id:              org.id,
+    ativo_id:                    data.ativo_id,
+    tipo_operacao:               data.tipo,
+    quantidade:                  data.quantidade,
+    data_operacao:               data.data_operacao,
+    origem_id:                   data.origem_id  ?? null,
+    destino_id:                  data.destino_id ?? null,
+    preco_unitario:              data.preco_unitario ?? null,
+    contribuicao_capital_social: data.contribuicao_capital_social ?? null,
+    motivo:                      data.motivo ?? null,
+    metadata:                    data.metadata ?? null,
   })
 
   if (error) return { error: error.message }

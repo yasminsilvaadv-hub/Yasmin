@@ -1,18 +1,31 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+
+  async function handleReset() {
+    if (!email) { setError('Digite seu e-mail antes de redefinir a senha.'); return }
+    setResetLoading(true)
+    setError(null)
+    const supabase = createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/atualizar-senha`,
+    })
+    setResetLoading(false)
+    if (error) { setError('Não foi possível enviar o e-mail. Tente novamente.') }
+    else { setResetSent(true) }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -35,50 +48,44 @@ export default function LoginPage() {
       .single()
 
     const slug = (membro?.organizacoes as { slug?: string } | null)?.slug
-    // Hard reload para garantir que o servidor veja a sessão nos cookies
     window.location.href = slug ? `/${slug}/dashboard` : '/nova-organizacao'
   }
 
   return (
     <div className="min-h-screen flex">
-      {/* Lado esquerdo — brand */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-white font-semibold text-lg">Societário</span>
-        </div>
-        <div>
-          <blockquote className="text-white/90 text-2xl font-medium leading-relaxed mb-4">
-            Gestão societária e equity em um só lugar.
-          </blockquote>
-          <p className="text-white/60 text-sm">
-            Cap table, equity plans, governança e stakeholders — com event sourcing e auditoria completa.
+
+      {/* Painel esquerdo — identidade */}
+      <div className="hidden lg:flex lg:w-5/12 bg-[#111827] flex-col items-center justify-center p-12 relative">
+        <div className="flex flex-col items-center gap-4 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-altoqi-white.svg" alt="AltoQI" className="w-56" />
+          <p className="text-white/30 text-[10px] uppercase tracking-widest mt-1">
+            Gestão Societária
           </p>
         </div>
-        <div className="flex gap-6 text-white/50 text-xs">
-          <span>Cap Table</span>
-          <span>Equity Plans</span>
-          <span>Governança</span>
-          <span>Stakeholders</span>
-        </div>
+
+        <p className="absolute bottom-8 text-white/20 text-xs tracking-wide">
+          Plataforma interna &middot; Grupo AltoQI
+        </p>
       </div>
 
-      {/* Lado direito — formulário */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
+      {/* Painel direito — formulário */}
+      <div className="flex-1 flex items-center justify-center bg-white p-8">
+
         {/* Logo mobile */}
-        <div className="lg:hidden flex items-center gap-2 mb-10">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-white" />
-          </div>
-          <span className="font-semibold text-lg">Societário</span>
+        <div className="absolute top-6 left-6 lg:hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-altoqi.svg" alt="AltoQI" className="h-7" />
         </div>
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground">Bem-vinda de volta</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Entre com seu e-mail e senha</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Acesse sua conta
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              E-mail corporativo
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -87,7 +94,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="voce@empresa.com.br"
+                placeholder="voce@altoqi.com.br"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -96,9 +103,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
-              </div>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -116,19 +121,35 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {resetSent && (
+              <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2">
+                <p className="text-sm text-green-700">E-mail de redefinição enviado! Verifique sua caixa de entrada.</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full bg-[#111827] hover:bg-[#1f2937] text-white"
+              size="lg"
+              disabled={loading}
+            >
               {loading ? 'Entrando…' : 'Entrar'}
             </Button>
-          </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Não tem conta?{' '}
-            <Link href="/cadastro" className="font-medium text-primary hover:underline">
-              Criar conta
-            </Link>
-          </p>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={resetLoading}
+                className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline disabled:opacity-50"
+              >
+                {resetLoading ? 'Enviando…' : 'Esqueceu a senha?'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
+
     </div>
   )
 }

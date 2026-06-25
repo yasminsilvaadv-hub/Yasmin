@@ -23,7 +23,7 @@ import {
 import { cn } from '@/lib/utils'
 import { criarLivro } from '@/app/actions/governanca'
 import { LivroDrawer } from './livro-drawer'
-import { getNaturezaConfig, NATUREZA_VALUES, type LivroRow, type OrgaoSimples } from './types'
+import { getNaturezaConfig, FORMAS_AUTENTICACAO, CATEGORIAS, NATUREZAS_PRIMARIAS, type LivroRow, type OrgaoSimples } from './types'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -231,6 +231,9 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
   const [fFormato, setFFormato] = React.useState<'digital' | 'fisico' | ''>('')
   const [fDataAuth, setFDataAuth] = React.useState('')
   const [fOrgaoAuth, setFOrgaoAuth] = React.useState('')
+  const [fFormaAuth, setFFormaAuth] = React.useState('')
+  const [fLocalAuth, setFLocalAuth] = React.useState('')
+  const [fAnotacoes, setFAnotacoes] = React.useState('')
   const [saving, setSaving] = React.useState(false)
   const [saveError, setSaveError] = React.useState<string | null>(null)
 
@@ -263,7 +266,9 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
 
   function resetForm() {
     setFNatureza(''); setFOrgaoId(''); setFPeriodoInicio(''); setFPeriodoFim('')
-    setFFormato(''); setFDataAuth(''); setFOrgaoAuth(''); setSaveError(null)
+    setFFormato(''); setFDataAuth(''); setFOrgaoAuth('')
+    setFFormaAuth(''); setFLocalAuth(''); setFAnotacoes('')
+    setSaveError(null)
   }
 
   async function handleSave() {
@@ -279,6 +284,9 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
       formato: fFormato as 'digital' | 'fisico',
       data_autenticacao: fDataAuth || null,
       orgao_autenticador: fOrgaoAuth || null,
+      forma_autenticacao: fFormaAuth || null,
+      local_autenticacao: fLocalAuth || null,
+      anotacoes: fAnotacoes || null,
     })
     setSaving(false)
     if (result?.error) { setSaveError(result.error); return }
@@ -354,24 +362,36 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
               <label className="text-sm font-medium">
                 Natureza <span className="text-destructive">*</span>
               </label>
-              <select value={fNatureza} onChange={(e) => setFNatureza(e.target.value)} className={SEL}>
-                <option value="">Selecione a natureza…</option>
-                {NATUREZA_VALUES.map((n) => (
-                  <option key={n} value={n}>{n}</option>
+              <select
+                value={fNatureza}
+                onChange={(e) => { setFNatureza(e.target.value); setFOrgaoId('') }}
+                className={SEL}
+              >
+                <option value="">Selecione o tipo de livro…</option>
+                {CATEGORIAS.map((cat) => (
+                  <optgroup key={cat.key} label={cat.label}>
+                    {NATUREZAS_PRIMARIAS.filter((n) => n.categoria === cat.key).map((n) => (
+                      <option key={n.value} value={n.value}>{n.label}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
 
-            {/* Órgão social */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Órgão social</label>
-              <select value={fOrgaoId} onChange={(e) => setFOrgaoId(e.target.value)} className={SEL}>
-                <option value="">Não vinculado</option>
-                {orgaos.map((o) => (
-                  <option key={o.id} value={o.id}>{o.nome}</option>
-                ))}
-              </select>
-            </div>
+            {/* Órgão social — só para "Atas e Mandatos" */}
+            {getNaturezaConfig(fNatureza).exigeOrgao && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  Órgão social <span className="text-destructive">*</span>
+                </label>
+                <select value={fOrgaoId} onChange={(e) => setFOrgaoId(e.target.value)} className={SEL}>
+                  <option value="">Selecione o órgão…</option>
+                  {orgaos.map((o) => (
+                    <option key={o.id} value={o.id}>{o.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Período */}
             <div className="grid grid-cols-2 gap-3">
@@ -408,6 +428,39 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
                 placeholder="Ex.: Junta Comercial de SP"
                 value={fOrgaoAuth}
                 onChange={(e) => setFOrgaoAuth(e.target.value)}
+              />
+            </div>
+
+            {/* Forma de autenticação */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Forma de autenticação</label>
+              <select value={fFormaAuth} onChange={(e) => setFFormaAuth(e.target.value)} className={SEL}>
+                <option value="">Selecione…</option>
+                {FORMAS_AUTENTICACAO.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Local de autenticação */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Local de autenticação</label>
+              <Input
+                placeholder="Ex.: JUCESC, Cartório 1º Ofício…"
+                value={fLocalAuth}
+                onChange={(e) => setFLocalAuth(e.target.value)}
+              />
+            </div>
+
+            {/* Anotações */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Anotações</label>
+              <textarea
+                rows={3}
+                placeholder="Observações livres…"
+                value={fAnotacoes}
+                onChange={(e) => setFAnotacoes(e.target.value)}
+                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 resize-none"
               />
             </div>
 

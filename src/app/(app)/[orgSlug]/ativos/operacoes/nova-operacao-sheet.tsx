@@ -61,6 +61,13 @@ export function NovaOperacaoSheet({ open, onClose, tipoInicial = 'emissao', orgS
     if (descricao) metadata.descricao = descricao
     if (fatorStr) metadata.fator = parseFloat(fatorStr)
 
+    const precoUnitario = get('preco_unitario') ? parseFloat(get('preco_unitario')!) : null
+    const contribStr = get('contribuicao_capital_social')
+    // Se o campo de contribuição foi preenchido, usa ele; senão deriva de qtd × preço
+    const contribuicaoCapitalSocial = contribStr
+      ? parseFloat(contribStr)
+      : (tipo === 'emissao' && precoUnitario !== null ? quantidade * precoUnitario : null)
+
     const result = await criarOperacao({
       orgSlug,
       ativo_id,
@@ -69,7 +76,8 @@ export function NovaOperacaoSheet({ open, onClose, tipoInicial = 'emissao', orgS
       data_operacao,
       origem_id: get('origem_id'),
       destino_id: get('destino_id'),
-      preco_unitario: get('preco_unitario') ? parseFloat(get('preco_unitario')!) : null,
+      preco_unitario: precoUnitario,
+      contribuicao_capital_social: tipo === 'emissao' ? contribuicaoCapitalSocial : null,
       motivo: get('motivo'),
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
     })
@@ -139,6 +147,22 @@ export function NovaOperacaoSheet({ open, onClose, tipoInicial = 'emissao', orgS
               <div className="space-y-1.5">
                 <Label htmlFor="preco_unitario">Preço unitário (R$)</Label>
                 <Input type="number" id="preco_unitario" name="preco_unitario" min="0" step="any" placeholder="0,00" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="contribuicao_capital_social">
+                  Contribuição ao capital social (R$)
+                  <span className="ml-1 text-xs text-muted-foreground font-normal">
+                    — deixe em branco para usar qtd × preço
+                  </span>
+                </Label>
+                <Input
+                  type="number"
+                  id="contribuicao_capital_social"
+                  name="contribuicao_capital_social"
+                  min="0"
+                  step="any"
+                  placeholder="Ex: 2.000.000,00"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="motivo">Motivo</Label>

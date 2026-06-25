@@ -31,9 +31,12 @@ import {
   LayersIcon,
   TrendingUpIcon,
   PieChartIcon,
+  PlusIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/shared/page-header'
+import { NovaOperacaoSheet } from '@/app/(app)/[orgSlug]/ativos/operacoes/nova-operacao-sheet'
+import type { AtivoSimples, PessoaSimples } from '@/app/(app)/[orgSlug]/ativos/operacoes/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -277,6 +280,12 @@ export default function CapTablePage() {
   const [qtdFuturaMap, setQtdFuturaMap] = React.useState<Map<string, number>>(new Map())
   const [loading, setLoading] = React.useState(true)
 
+  // Sheet de nova operação
+  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const [ativos, setAtivos] = React.useState<AtivoSimples[]>([])
+  const [pessoas, setPessoas] = React.useState<PessoaSimples[]>([])
+  const [refreshTick, setRefreshTick] = React.useState(0)
+
   // ── Bootstrap ──────────────────────────────────────────────
   React.useEffect(() => {
     async function bootstrap() {
@@ -290,6 +299,37 @@ export default function CapTablePage() {
         return
       }
       setOrgId(org.id)
+
+      // Carrega ativos e pessoas para o sheet de nova operação
+      const [{ data: ativosData }, { data: pessoasData }] = await Promise.all([
+        supabase
+          .from('ativos')
+          .select('id, codigo, especie, tipo, nome_classe')
+          .eq('organizacao_id', org.id)
+          .order('codigo'),
+        supabase
+          .from('pessoas')
+          .select('id, nome_completo, cpf_cnpj')
+          .eq('organizacao_id', org.id)
+          .order('nome_completo'),
+      ])
+      setAtivos(
+        (ativosData ?? []).map((a) => ({
+          id: a.id,
+          codigo: a.codigo,
+          especie: a.especie,
+          tipo: a.tipo,
+          nome_classe: a.nome_classe,
+        }))
+      )
+      setPessoas(
+        (pessoasData ?? []).map((p) => ({
+          id: p.id,
+          nome: p.nome_completo,
+          cpf_cnpj: p.cpf_cnpj,
+        }))
+      )
+
       setLoading(false)
     }
     bootstrap()
@@ -333,7 +373,7 @@ export default function CapTablePage() {
     }
 
     fetchData()
-  }, [orgId, dataRef, incluirTesouraria, incluirUsufruto, supabase])
+  }, [orgId, dataRef, incluirTesouraria, incluirUsufruto, supabase, refreshTick])
 
   // ── Derived data ───────────────────────────────────────────
 
@@ -424,16 +464,36 @@ export default function CapTablePage() {
         icon={PieChartIcon}
         iconGradient="from-blue-400 to-blue-600"
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportCSV(rows, dataRef)}
-            disabled={rows.length === 0}
-          >
-            <DownloadIcon />
-            Exportar CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportCSV(rows, dataRef)}
+              disabled={rows.length === 0}
+            >
+              <DownloadIcon />
+              Exportar CSV
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setSheetOpen(true)}
+            >
+              <PlusIcon />
+              Nova operação
+            </Button>
+          </div>
         }
+      />
+
+      <NovaOperacaoSheet
+        open={sheetOpen}
+        onClose={() => {
+          setSheetOpen(false)
+          setRefreshTick((t) => t + 1)
+        }}
+        orgSlug={orgSlug}
+        ativos={ativos}
+        pessoas={pessoas}
       />
 
     <div className="p-6 space-y-6">
