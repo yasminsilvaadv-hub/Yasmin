@@ -23,7 +23,17 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)),
+    ]) as Awaited<ReturnType<typeof supabase.auth.getUser>>
+    user = result.data.user
+  } catch {
+    // Supabase indisponível — deixa passar para a página tratar o erro
+    return supabaseResponse
+  }
 
   const { pathname } = request.nextUrl
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/cadastro') || pathname.startsWith('/nova-organizacao') || pathname.startsWith('/auth')
