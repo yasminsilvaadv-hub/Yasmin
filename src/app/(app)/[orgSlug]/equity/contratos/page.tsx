@@ -3,6 +3,8 @@
 import * as React from "react"
 import { useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { convidarParticipanteSOP } from "@/app/actions/membros"
+import { toast } from "sonner"
 import { format, addMonths, isBefore } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -53,6 +55,7 @@ interface Pessoa {
   id: string
   nome_completo: string
   cpf_cnpj: string
+  email_principal?: string | null
 }
 
 interface Ativo {
@@ -1006,9 +1009,13 @@ function ContratoDrawer({ contrato, open, onOpenChange, orgSlug, onRefresh, cale
 function TabelaContratos({
   contratos,
   onSelect,
+  onConvidar,
+  convidando = {},
 }: {
   contratos: Contrato[]
   onSelect: (c: Contrato) => void
+  onConvidar?: (c: Contrato) => void
+  convidando?: Record<string, boolean>
 }) {
   if (contratos.length === 0) {
     return <EmptyState message="Nenhum contrato neste status." />
@@ -1028,6 +1035,7 @@ function TabelaContratos({
             <TableHead>Data aprovação</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Progresso</TableHead>
+            {onConvidar && <TableHead />}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1073,6 +1081,19 @@ function TabelaContratos({
                 <TableCell className="w-32">
                   <ProgressBar value={qtdVestida} max={c.quantidade_outorgada} />
                 </TableCell>
+                {onConvidar && (
+                  <TableCell onClick={e => e.stopPropagation()}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7 px-2"
+                      disabled={convidando[c.id]}
+                      onClick={() => onConvidar(c)}
+                    >
+                      {convidando[c.id] ? 'Enviando…' : 'Convidar'}
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             )
           })}
@@ -1097,6 +1118,33 @@ export default function ContratosPage() {
   const [novoSheet, setNovoSheet] = React.useState(false)
   const [selectedContrato, setSelectedContrato] = React.useState<Contrato | null>(null)
   const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [convidando, setConvidando] = React.useState<Record<string, boolean>>({})
+
+  async function handleConvidarParticipante(contrato: Contrato) {
+    const pessoa = contrato.pessoas as unknown as Pessoa | null
+    if (!pessoa?.email_principal) {
+      toast.error(`${pessoa?.nome_completo ?? 'Participante'} não tem e-mail cadastrado.`)
+      return
+    }
+    setConvidando(v => ({ ...v, [contrato.id]: true }))
+    const result = await convidarParticipanteSOP(orgSlug, pessoa.id, pessoa.email_principal)
+    setConvidando(v => ({ ...v, [contrato.id]: false }))
+    if (result.error) toast.error(result.error)
+    else toast.success(`Convite enviado para ${pessoa.email_principal}`)
+  }
+
+  async function handleConvidarTodos() {
+    const ativos = contratos.filter(c => c.status === 'ativo')
+    if (ativos.length === 0) { toast.error('Nenhum contrato ativo encontrado.'); return }
+    let ok = 0, sem = 0
+    for (const c of ativos) {
+      const pessoa = c.pessoas as unknown as Pessoa | null
+      if (!pessoa?.email_principal) { sem++; continue }
+      await convidarParticipanteSOP(orgSlug, pessoa.id, pessoa.email_principal)
+      ok++
+    }
+    toast.success(`${ok} convite(s) enviado(s)${sem > 0 ? ` · ${sem} sem e-mail` : ''}`)
+  }
 
   const supabase = React.useMemo(() => createClient(), [])
 
@@ -1134,7 +1182,7 @@ export default function ContratosPage() {
         .eq("organizacao_id", orgId),
       supabase
         .from("pessoas")
-        .select("id, nome_completo, cpf_cnpj")
+        .select("id, nome_completo, cpf_cnpj, email_principal")
         .eq("organizacao_id", orgId),
     ])
 
@@ -1220,6 +1268,9 @@ export default function ContratosPage() {
         <Button variant="outline" size="sm">
           <SlidersHorizontalIcon className="size-3.5 mr-1.5" /> Filtros
         </Button>
+        <Button variant="outline" size="sm" onClick={handleConvidarTodos}>
+          Convidar todos para o portal
+        </Button>
         <Button onClick={() => setNovoSheet(true)}>
           <PlusIcon className="size-4 mr-2" /> Novo contrato
         </Button>
@@ -1263,7 +1314,12 @@ export default function ContratosPage() {
             <TabelaContratos contratos={emAssinatura} onSelect={openDrawer} />
           </TabsContent>
           <TabsContent value="ativo" className="mt-4">
-            <TabelaContratos contratos={ativos} onSelect={openDrawer} />
+            <TabelaContratos
+              contratos={ativos}
+              onSelect={openDrawer}
+              onConvidar={handleConvidarParticipante}
+              convidando={convidando}
+            />
           </TabsContent>
         </Tabs>
       )}
