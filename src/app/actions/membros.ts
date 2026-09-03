@@ -121,20 +121,31 @@ export async function convidarParticipanteSOP(
     return { error: 'Sem permissão' }
   }
 
-  // Verifica se já é membro
-  const { data: existing } = await adminClient.auth.admin.listUsers({ perPage: 1000 })
-  const existingUser = existing?.users.find(u => u.email === email)
+  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://groovy-sundae.vercel.app'}/auth/callback?next=/atualizar-senha`
+
+  // Tenta enviar convite — funciona para novos usuários e para quem ainda não confirmou
+  const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
+    data: { organizacao_id: org.id, papel: 'participante_sop' },
+    redirectTo,
+  })
 
   let userId: string
-  if (existingUser) {
-    userId = existingUser.id
-  } else {
-    const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { organizacao_id: org.id, papel: 'participante_sop' },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://groovy-sundae.vercel.app'}/auth/callback?next=/atualizar-senha`,
-    })
-    if (inviteErr || !invited?.user) return { error: inviteErr?.message ?? 'Erro ao convidar' }
+
+  if (invited?.user) {
     userId = invited.user.id
+  } else {
+    // Usuário já existe e confirmou a conta — busca o ID e envia link de acesso
+    const { data: existing } = await adminClient.auth.admin.listUsers({ perPage: 1000 })
+    const existingUser = existing?.users.find(u => u.email === email)
+    if (!existingUser) return { error: inviteErr?.message ?? 'Erro ao convidar' }
+    userId = existingUser.id
+
+    // Gera link de recuperação de senha para quem já tem conta confirmada
+    await adminClient.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo },
+    })
   }
 
   const { error } = await supabase.from('membros').upsert(
