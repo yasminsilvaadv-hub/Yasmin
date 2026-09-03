@@ -43,12 +43,14 @@ export default function LoginPage() {
 
     const { data: membro } = await supabase
       .from('membros')
-      .select('organizacoes(slug)')
+      .select('papel, organizacoes(slug)')
       .limit(1)
       .single()
 
     const slug = (membro?.organizacoes as { slug?: string } | null)?.slug
-    window.location.href = slug ? `/${slug}/dashboard` : '/nova-organizacao'
+    if (!slug) { window.location.href = '/nova-organizacao'; return }
+    const destino = membro?.papel === 'participante_sop' ? `/${slug}/portal` : `/${slug}/dashboard`
+    window.location.href = destino
   }
 
   return (

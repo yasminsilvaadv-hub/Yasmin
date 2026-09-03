@@ -52,8 +52,10 @@ const selectClass =
 
 const PAPEL_LABEL: Record<string, string> = {
   admin: 'Administrador',
-  editor: 'Editor',
-  viewer: 'Visualizador',
+  operacional: 'Equipe Operacional',
+  editor: 'Equipe Operacional',   // legado
+  viewer: 'Visualizador',          // legado
+  participante_sop: 'Participante SOP',
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -67,7 +69,7 @@ export default function MembrosPage() {
   const [inviting, setInviting] = React.useState(false)
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [email, setEmail] = React.useState('')
-  const [papel, setPapel] = React.useState('viewer')
+  const [papel, setPapel] = React.useState('operacional')
 
   async function fetchMembros() {
     setLoading(true)
@@ -84,7 +86,7 @@ export default function MembrosPage() {
   async function handleConvidar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setInviting(true)
-    const result = await convidarMembro(orgSlug, email, papel as 'admin' | 'editor' | 'viewer')
+    const result = await convidarMembro(orgSlug, email, papel as 'admin' | 'operacional' | 'participante_sop')
     setInviting(false)
     if (result.error) {
       toast.error(result.error)
@@ -92,13 +94,13 @@ export default function MembrosPage() {
       toast.success('Convite enviado com sucesso!')
       setDialogOpen(false)
       setEmail('')
-      setPapel('viewer')
+      setPapel('operacional')
       fetchMembros()
     }
   }
 
   async function handleAtualizarPapel(membroId: string, novoPapel: string) {
-    const result = await atualizarPapel(membroId, novoPapel as 'admin' | 'editor' | 'viewer')
+    const result = await atualizarPapel(membroId, novoPapel as 'admin' | 'operacional' | 'participante_sop')
     if (result.error) {
       toast.error(result.error)
     } else {
@@ -162,8 +164,7 @@ export default function MembrosPage() {
                     onChange={(e) => setPapel(e.target.value)}
                   >
                     <option value="admin">Administrador</option>
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Visualizador</option>
+                    <option value="operacional">Equipe Operacional</option>
                   </select>
                 </div>
 

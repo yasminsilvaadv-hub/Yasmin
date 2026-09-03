@@ -42,9 +42,18 @@ interface NavItem {
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
-function buildNav(orgSlug: string): NavItem[] {
+function buildNav(orgSlug: string, papel: string): NavItem[] {
   const b = `/${orgSlug}`
-  return [
+
+  // Portal do participante SOP — nav simplificada
+  if (papel === 'participante_sop') {
+    return [
+      { label: 'Meu Portal',   href: `${b}/portal`,            icon: LayoutDashboard },
+      { label: 'Meus contratos', href: `${b}/portal/contratos`, icon: TrendingUp },
+    ]
+  }
+
+  const nav: NavItem[] = [
     { label: 'Dashboard',    href: `${b}/dashboard`,    icon: LayoutDashboard },
     { label: 'Cap Table',    href: `${b}/cap-table`,     icon: PieChart },
     {
@@ -76,13 +85,19 @@ function buildNav(orgSlug: string): NavItem[] {
     },
     { label: 'Stakeholders', href: `${b}/stakeholders`, icon: Users },
     { label: 'Relatórios',   href: `${b}/relatorios`,   icon: BarChart3 },
-    {
+  ]
+
+  // Configurações só para admin
+  if (papel === 'admin') {
+    nav.push({
       label: 'Configurações', icon: Settings2,
       children: [
         { label: 'Membros',   href: `${b}/configuracoes/membros` },
       ],
-    },
-  ]
+    })
+  }
+
+  return nav
 }
 
 // ─── Logo mark AltoQI ─────────────────────────────────────────────────────────
@@ -110,15 +125,18 @@ export function AppSidebar({
   orgSlug,
   orgNome,
   userEmail,
+  papel = 'operacional',
   todasOrgs = [],
 }: {
   orgSlug: string
   orgNome: string
   userEmail?: string
+  papel?: string
   todasOrgs?: { id: string; nome: string; slug: string }[]
 }) {
   const pathname = usePathname()
-  const nav      = buildNav(orgSlug)
+  const nav      = buildNav(orgSlug, papel)
+  const isSOP    = papel === 'participante_sop'
   const [seletorAberto, setSeletorAberto] = React.useState(false)
 
   const initial = userEmail ? userEmail[0].toUpperCase() : '?'
@@ -223,7 +241,35 @@ export function AppSidebar({
       {/* ── Navegação ───────────────────────── */}
       <SidebarContent className="py-3 px-3 gap-0 overflow-x-hidden">
 
+        {/* Nav simplificada para participante SOP */}
+        {isSOP && (
+          <SidebarMenu className="gap-0.5">
+            {nav.map((item) => {
+              const active = pathname === item.href || pathname.startsWith((item.href ?? '') + '/')
+              return (
+                <SidebarMenuItem key={item.label}>
+                  <SidebarMenuButton
+                    render={<Link href={item.href!} />}
+                    isActive={active}
+                    className={cn(
+                      'rounded-lg h-9 text-[13.5px] gap-3 font-medium transition-all',
+                      active
+                        ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
+                    )}
+                  >
+                    {item.icon && <item.icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-sidebar-foreground/50')} />}
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            })}
+          </SidebarMenu>
+        )}
+
+        {/* Nav completa para admin/operacional */}
         {/* Principal */}
+        {!isSOP && <>
         <SidebarMenu className="gap-0.5 mb-4">
           {nav.slice(0, 2).map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href! + '/')
@@ -425,6 +471,7 @@ export function AppSidebar({
             )
           })}
         </SidebarMenu>
+        </>}
       </SidebarContent>
 
       {/* ── Footer: usuário ──────────────────── */}

@@ -26,7 +26,7 @@ export default async function OrgLayout({ children, params }: Props) {
 
   const { data: membro } = await supabase
     .from('membros')
-    .select('papel')
+    .select('papel, pessoa_id')
     .eq('organizacao_id', org.id)
     .eq('user_id', user.id)
     .single()
@@ -50,6 +50,7 @@ export default async function OrgLayout({ children, params }: Props) {
         orgSlug={orgSlug}
         orgNome={org.nome}
         userEmail={user.email}
+        papel={membro.papel}
         todasOrgs={todasOrgs}
       />
       <SidebarInset>
