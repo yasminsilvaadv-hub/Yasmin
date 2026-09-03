@@ -5,7 +5,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 export async function listarMembros(
   orgSlug: string
 ): Promise<{ id: string; user_id: string; papel: string; email: string; confirmed: boolean; created_at: string }[]> {
-  const supabase = await createServiceClient()
+  const supabase = await createClient()
+  const adminClient = await createServiceClient()
 
   const { data: org, error: orgError } = await supabase
     .from('organizacoes')
@@ -23,7 +24,7 @@ export async function listarMembros(
 
   if (membrosError || !membros) return []
 
-  const { data: usersData } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+  const { data: usersData } = await adminClient.auth.admin.listUsers({ perPage: 1000 })
 
   const userMap = new Map<string, { email: string; email_confirmed_at: string | null }>()
   for (const user of usersData?.users ?? []) {
@@ -51,10 +52,10 @@ export async function convidarMembro(
   email: string,
   papel: 'admin' | 'operacional' | 'participante_sop'
 ): Promise<{ error?: string }> {
-  const supabase = await createServiceClient()
-  const anonClient = await createClient()
+  const supabase = await createClient()
+  const adminClient = await createServiceClient()
 
-  const { data: { user: caller }, error: callerError } = await anonClient.auth.getUser()
+  const { data: { user: caller }, error: callerError } = await supabase.auth.getUser()
   if (callerError || !caller) return { error: 'Não autenticado' }
 
   const { data: org, error: orgError } = await supabase
@@ -76,7 +77,7 @@ export async function convidarMembro(
     return { error: 'Sem permissão' }
   }
 
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+  const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
     email,
     { data: { organizacao_id: org.id, papel } }
   )
@@ -102,10 +103,10 @@ export async function convidarParticipanteSOP(
   pessoaId: string,
   email: string,
 ): Promise<{ error?: string }> {
-  const supabase = await createServiceClient()
-  const anonClient = await createClient()
+  const supabase = await createClient()
+  const adminClient = await createServiceClient()
 
-  const { data: { user: caller } } = await anonClient.auth.getUser()
+  const { data: { user: caller } } = await supabase.auth.getUser()
   if (!caller) return { error: 'Não autenticado' }
 
   const { data: org } = await supabase.from('organizacoes').select('id').eq('slug', orgSlug).single()
@@ -118,14 +119,14 @@ export async function convidarParticipanteSOP(
   }
 
   // Verifica se já é membro
-  const { data: existing } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+  const { data: existing } = await adminClient.auth.admin.listUsers({ perPage: 1000 })
   const existingUser = existing?.users.find(u => u.email === email)
 
   let userId: string
   if (existingUser) {
     userId = existingUser.id
   } else {
-    const { data: invited, error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(email, {
+    const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { organizacao_id: org.id, papel: 'participante_sop' },
     })
     if (inviteErr || !invited?.user) return { error: inviteErr?.message ?? 'Erro ao convidar' }
@@ -145,7 +146,7 @@ export async function atualizarPapel(
   membroId: string,
   papel: 'admin' | 'operacional' | 'participante_sop'
 ): Promise<{ error?: string }> {
-  const supabase = await createServiceClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('membros')
@@ -158,7 +159,7 @@ export async function atualizarPapel(
 }
 
 export async function removerMembro(membroId: string): Promise<{ error?: string }> {
-  const supabase = await createServiceClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('membros')

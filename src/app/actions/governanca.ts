@@ -1,6 +1,6 @@
 'use server'
 
-import { createServiceClient as createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
