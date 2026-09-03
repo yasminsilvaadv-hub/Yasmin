@@ -79,7 +79,10 @@ export async function convidarMembro(
 
   const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
     email,
-    { data: { organizacao_id: org.id, papel } }
+    {
+      data: { organizacao_id: org.id, papel },
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://groovy-sundae.vercel.app'}/auth/callback?next=/atualizar-senha`,
+    }
   )
 
   if (inviteError || !inviteData?.user) {
@@ -128,6 +131,7 @@ export async function convidarParticipanteSOP(
   } else {
     const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { organizacao_id: org.id, papel: 'participante_sop' },
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://groovy-sundae.vercel.app'}/auth/callback?next=/atualizar-senha`,
     })
     if (inviteErr || !invited?.user) return { error: inviteErr?.message ?? 'Erro ao convidar' }
     userId = invited.user.id

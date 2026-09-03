@@ -34,7 +34,12 @@ export async function GET(request: Request) {
           .single()
 
         if (org?.slug) {
-          return NextResponse.redirect(`${origin}/${org.slug}/dashboard`)
+          const destino = papel === 'participante_sop'
+            ? `${origin}/${org.slug}/portal`
+            : `${origin}/${org.slug}/dashboard`
+          // Se veio de convite e next=/atualizar-senha, deixa passar
+          if (next === '/atualizar-senha') return NextResponse.redirect(`${origin}/atualizar-senha`)
+          return NextResponse.redirect(destino)
         }
       }
     }
