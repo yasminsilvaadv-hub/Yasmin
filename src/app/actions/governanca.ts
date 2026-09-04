@@ -328,6 +328,7 @@ export async function criarLivro(payload: {
   periodo_inicio: string | null
   periodo_fim: string | null
   formato: 'digital' | 'fisico'
+  autenticado?: boolean
   data_autenticacao: string | null
   orgao_autenticador: string | null
   forma_autenticacao?: string | null
@@ -356,6 +357,7 @@ export async function criarLivro(payload: {
     periodo_inicio: payload.periodo_inicio || null,
     periodo_fim: payload.periodo_fim || null,
     formato: payload.formato,
+    autenticado: payload.autenticado ?? false,
     data_autenticacao: payload.data_autenticacao || null,
     orgao_autenticador: payload.orgao_autenticador || null,
     forma_autenticacao: payload.forma_autenticacao ?? null,

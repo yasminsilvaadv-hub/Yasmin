@@ -30,7 +30,7 @@ export default async function LivrosPage({ params }: PageProps) {
     supabase
       .from('livros_societarios')
       .select(
-        'id, natureza, numero_ordem, periodo_inicio, periodo_fim, formato, forma_autenticacao, local_autenticacao, data_autenticacao, orgao_autenticador, anotacoes, deliberacao, evento_id, operacao_id, created_at, orgao:orgaos_sociais ( id, nome )'
+        'id, natureza, numero_ordem, periodo_inicio, periodo_fim, formato, autenticado, forma_autenticacao, local_autenticacao, data_autenticacao, orgao_autenticador, anotacoes, deliberacao, evento_id, operacao_id, created_at, orgao:orgaos_sociais ( id, nome )'
       )
       .eq('organizacao_id', org.id)
       .order('natureza', { ascending: true })
@@ -51,6 +51,7 @@ export default async function LivrosPage({ params }: PageProps) {
       periodo_inicio: l.periodo_inicio ?? null,
       periodo_fim: l.periodo_fim ?? null,
       formato: (l.formato ?? 'digital') as 'digital' | 'fisico',
+      autenticado: Boolean((l as Record<string, unknown>).autenticado ?? (l.data_autenticacao !== null)),
       data_autenticacao: l.data_autenticacao ?? null,
       orgao_autenticador: l.orgao_autenticador ?? null,
       operacao_id: (l as Record<string, unknown>).operacao_id as string | null ?? null,

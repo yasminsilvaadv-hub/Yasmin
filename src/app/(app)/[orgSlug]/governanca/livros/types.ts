@@ -5,6 +5,7 @@ export interface LivroRow {
   periodo_inicio: string | null
   periodo_fim: string | null
   formato: 'digital' | 'fisico'
+  autenticado: boolean
   forma_autenticacao: string | null
   local_autenticacao: string | null
   data_autenticacao: string | null
