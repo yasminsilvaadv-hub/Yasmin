@@ -140,12 +140,8 @@ export async function convidarParticipanteSOP(
     if (!existingUser) return { error: inviteErr?.message ?? 'Erro ao convidar' }
     userId = existingUser.id
 
-    // Gera link de recuperação de senha para quem já tem conta confirmada
-    await adminClient.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: { redirectTo },
-    })
+    // Envia e-mail de redefinição de senha para quem já tem conta confirmada
+    await supabase.auth.resetPasswordForEmail(email, { redirectTo })
   }
 
   const { error } = await supabase.from('membros').upsert(
