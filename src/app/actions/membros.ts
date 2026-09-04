@@ -121,7 +121,8 @@ export async function convidarParticipanteSOP(
     return { error: 'Sem permissão' }
   }
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://groovy-sundae.vercel.app'}/auth/callback?next=/atualizar-senha`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://groovy-sundae.vercel.app'
+  const redirectTo = `${appUrl}/atualizar-senha`
 
   // Tenta enviar convite — funciona para novos usuários e para quem ainda não confirmou
   const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
