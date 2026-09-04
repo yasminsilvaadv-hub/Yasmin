@@ -9,21 +9,52 @@ import {
   BookOpenIcon,
   ExternalLinkIcon,
   ChevronRightIcon,
+  InfoIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { criarLivro } from '@/app/actions/governanca'
 import { LivroDrawer } from './livro-drawer'
-import { getNaturezaConfig, FORMAS_AUTENTICACAO, CATEGORIAS, NATUREZAS_PRIMARIAS, type LivroRow, type OrgaoSimples } from './types'
+import {
+  getNaturezaConfig,
+  CATEGORIAS,
+  NATUREZAS_PRIMARIAS,
+  type LivroRow,
+  type OrgaoSimples,
+} from './types'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const SEL = 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20'
+
+const JUNTAS_COMERCIAIS = [
+  'JUCAC – Acre', 'JUCEAL – Alagoas', 'JUCEMAP – Amapá', 'JUCEA – Amazonas',
+  'JUCEB – Bahia', 'JUCEC – Ceará', 'JUCDF – Distrito Federal', 'JUCEES – Espírito Santo',
+  'JUCEG – Goiás', 'JUCEMA – Maranhão', 'JUCEMAT – Mato Grosso', 'JUCEMS – Mato Grosso do Sul',
+  'JUCEMG – Minas Gerais', 'JUCEPA – Pará', 'JUCEP – Paraíba', 'JUCEPAR – Paraná',
+  'JUCEPE – Pernambuco', 'JUCEPI – Piauí', 'JUCERJ – Rio de Janeiro',
+  'JUCERN – Rio Grande do Norte', 'JUCERGS – Rio Grande do Sul', 'JUCER – Rondônia',
+  'JUCERR – Roraima', 'JUCESC – Santa Catarina', 'JUCESP – São Paulo',
+  'JUCESE – Sergipe', 'JUCETINS – Tocantins',
+]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -84,15 +115,9 @@ function NaturezaSection({
 
   return (
     <div className="rounded-xl border border-border overflow-hidden">
-      {/* Section header */}
       <div className="flex items-center justify-between gap-3 px-4 py-3 bg-muted/30 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <span
-            className={cn(
-              'inline-block size-2.5 rounded-full border',
-              config.badgeClass
-            )}
-          />
+          <span className={cn('inline-block size-2.5 rounded-full border', config.badgeClass)} />
           <span className="font-semibold text-sm">{natureza}</span>
           <Badge variant="secondary" className="h-5 text-xs font-normal tabular-nums">
             {livros.length}
@@ -112,7 +137,6 @@ function NaturezaSection({
         )}
       </div>
 
-      {/* Livros table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -128,7 +152,6 @@ function NaturezaSection({
             {livros.map((l) => {
               const periodo = fmtPeriodo(l.periodo_inicio, l.periodo_fim)
               const referencia = l.orgao_autenticador?.slice(0, 80) ?? (l.operacao_id ? 'Operação vinculada' : null)
-
               return (
                 <tr
                   key={l.id}
@@ -210,38 +233,277 @@ function FilterTabs({
   )
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Novo Livro Dialog ────────────────────────────────────────────────────────
 
-const SEL = 'h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20'
+function NovoLivroDialog({
+  natureza,
+  open,
+  onClose,
+  orgaos,
+  orgSlug,
+  onSaved,
+}: {
+  natureza: string
+  open: boolean
+  onClose: () => void
+  orgaos: OrgaoSimples[]
+  orgSlug: string
+  onSaved: () => void
+}) {
+  const config = getNaturezaConfig(natureza)
 
-export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
-  // Filter state
-  const [filterNatureza, setFilterNatureza] = React.useState('all')
-
-  // Drawer state
-  const [selectedLivro, setSelectedLivro] = React.useState<LivroRow | null>(null)
-  const [drawerOpen, setDrawerOpen] = React.useState(false)
-
-  // "Novo livro" sheet state
-  const [sheetOpen, setSheetOpen] = React.useState(false)
-  const [fNatureza, setFNatureza] = React.useState('')
   const [fOrgaoId, setFOrgaoId] = React.useState('')
   const [fPeriodoInicio, setFPeriodoInicio] = React.useState('')
   const [fPeriodoFim, setFPeriodoFim] = React.useState('')
   const [fFormato, setFFormato] = React.useState<'digital' | 'fisico' | ''>('')
-  const [fDataAuth, setFDataAuth] = React.useState('')
-  const [fOrgaoAuth, setFOrgaoAuth] = React.useState('')
-  const [fFormaAuth, setFFormaAuth] = React.useState('')
-  const [fLocalAuth, setFLocalAuth] = React.useState('')
   const [fAnotacoes, setFAnotacoes] = React.useState('')
+  const [fAutenticado, setFAutenticado] = React.useState(false)
+  const [fDataAuth, setFDataAuth] = React.useState('')
+  const [fJunta, setFJunta] = React.useState('')
+  const [fFormaAuth, setFFormaAuth] = React.useState<'escriturado' | 'em_branco' | ''>('')
   const [saving, setSaving] = React.useState(false)
   const [saveError, setSaveError] = React.useState<string | null>(null)
 
-  // Local livros state for optimistic refresh
+  React.useEffect(() => {
+    if (!open) return
+    setFOrgaoId(''); setFPeriodoInicio(''); setFPeriodoFim('')
+    setFFormato(''); setFAnotacoes(''); setFAutenticado(false)
+    setFDataAuth(''); setFJunta(''); setFFormaAuth(''); setSaveError(null)
+  }, [open, natureza])
+
+  const canSave =
+    !!fFormato &&
+    (!config.exigeOrgao || !!fOrgaoId) &&
+    (!fAutenticado || (!!fDataAuth && !!fJunta && !!fFormaAuth))
+
+  async function handleSave() {
+    setSaving(true)
+    setSaveError(null)
+    const result = await criarLivro({
+      orgSlug,
+      natureza,
+      orgao_id: fOrgaoId || null,
+      periodo_inicio: fPeriodoInicio || null,
+      periodo_fim: fPeriodoFim || null,
+      formato: fFormato as 'digital' | 'fisico',
+      data_autenticacao: fAutenticado ? fDataAuth || null : null,
+      orgao_autenticador: fAutenticado ? fJunta || null : null,
+      forma_autenticacao: fAutenticado ? fFormaAuth || null : null,
+      local_autenticacao: null,
+      anotacoes: fAnotacoes || null,
+    })
+    setSaving(false)
+    if (result?.error) { setSaveError(result.error); return }
+    onSaved()
+    onClose()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-base">{config.label}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Banner informativo */}
+          {config.textoAjuda && (
+            <div className="flex gap-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 px-3.5 py-3">
+              <InfoIcon className="size-4 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                {config.textoAjuda}
+              </p>
+            </div>
+          )}
+
+          {/* Órgão social — somente quando exige */}
+          {config.exigeOrgao && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Órgão social <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={fOrgaoId}
+                onChange={(e) => setFOrgaoId(e.target.value)}
+                className={SEL}
+              >
+                <option value="">Selecione o órgão social…</option>
+                {orgaos.map((o) => (
+                  <option key={o.id} value={o.id}>{o.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Formato + Período — grid 2 colunas */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Formato <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={fFormato}
+                onChange={(e) => setFFormato(e.target.value as 'digital' | 'fisico' | '')}
+                className={SEL}
+              >
+                <option value="">Selecione…</option>
+                <option value="digital">Digital</option>
+                <option value="fisico">Físico</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">
+                Nº de ordem
+              </label>
+              <Input
+                value="Auto"
+                disabled
+                className="bg-muted/50 text-muted-foreground cursor-not-allowed"
+                title="O número de ordem é calculado automaticamente com base nos livros já existentes deste tipo."
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Início do período</label>
+              <Input
+                type="date"
+                value={fPeriodoInicio}
+                onChange={(e) => setFPeriodoInicio(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Fim do período</label>
+              <Input
+                type="date"
+                value={fPeriodoFim}
+                min={fPeriodoInicio || undefined}
+                onChange={(e) => setFPeriodoFim(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Anotações */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Anotações</label>
+            <textarea
+              rows={2}
+              placeholder="Observações livres sobre este livro…"
+              value={fAnotacoes}
+              onChange={(e) => setFAnotacoes(e.target.value)}
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 resize-none"
+            />
+          </div>
+
+          {/* Separador autenticação */}
+          <div className="border-t border-border/60 pt-4 space-y-3">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={fAutenticado}
+                onChange={(e) => setFAutenticado(e.target.checked)}
+                className="size-4 rounded accent-foreground cursor-pointer"
+              />
+              <span className="text-sm font-medium">Livro já autenticado</span>
+            </label>
+
+            {/* Progressive disclosure */}
+            {fAutenticado && (
+              <div className="space-y-3 pl-6 border-l-2 border-border/60">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">
+                      Data de autenticação <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={fDataAuth}
+                      onChange={(e) => setFDataAuth(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">
+                      Junta Comercial <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      value={fJunta}
+                      onChange={(e) => setFJunta(e.target.value)}
+                      className={SEL}
+                    >
+                      <option value="">Selecione…</option>
+                      {JUNTAS_COMERCIAIS.map((j) => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    Forma de autenticação <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="radio"
+                        name="forma-auth"
+                        value="escriturado"
+                        checked={fFormaAuth === 'escriturado'}
+                        onChange={() => setFFormaAuth('escriturado')}
+                        className="accent-foreground"
+                      />
+                      Livro escriturado
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="radio"
+                        name="forma-auth"
+                        value="em_branco"
+                        checked={fFormaAuth === 'em_branco'}
+                        onChange={() => setFFormaAuth('em_branco')}
+                        className="accent-foreground"
+                      />
+                      Livro em branco
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {saveError && (
+            <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+              <p className="text-sm text-destructive">{saveError}</p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={saving || !canSave}>
+            {saving ? 'Salvando…' : 'Salvar livro'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
+  const [filterNatureza, setFilterNatureza] = React.useState('all')
+  const [selectedLivro, setSelectedLivro] = React.useState<LivroRow | null>(null)
+  const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [dialogNatureza, setDialogNatureza] = React.useState('')
+  const [dialogOpen, setDialogOpen] = React.useState(false)
   const [localLivros, setLocalLivros] = React.useState(livros)
+
   React.useEffect(() => { setLocalLivros(livros) }, [livros])
 
-  // Group by natureza (preserving order of first occurrence)
   const grouped = React.useMemo(() => {
     const map = new Map<string, LivroRow[]>()
     for (const l of localLivros) {
@@ -253,52 +515,19 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
 
   const naturezasPresentes = Array.from(grouped.keys())
 
-  // Which groups to display
   const visibleEntries: [string, LivroRow[]][] =
     filterNatureza === 'all'
       ? Array.from(grouped.entries())
       : [[filterNatureza, grouped.get(filterNatureza) ?? []]]
 
-  function openDrawer(l: LivroRow) {
-    setSelectedLivro(l)
-    setDrawerOpen(true)
-  }
-
-  function resetForm() {
-    setFNatureza(''); setFOrgaoId(''); setFPeriodoInicio(''); setFPeriodoFim('')
-    setFFormato(''); setFDataAuth(''); setFOrgaoAuth('')
-    setFFormaAuth(''); setFLocalAuth(''); setFAnotacoes('')
-    setSaveError(null)
-  }
-
-  async function handleSave() {
-    if (!fNatureza || !fFormato) return
-    setSaving(true)
-    setSaveError(null)
-    const result = await criarLivro({
-      orgSlug,
-      natureza: fNatureza,
-      orgao_id: fOrgaoId || null,
-      periodo_inicio: fPeriodoInicio || null,
-      periodo_fim: fPeriodoFim || null,
-      formato: fFormato as 'digital' | 'fisico',
-      data_autenticacao: fDataAuth || null,
-      orgao_autenticador: fOrgaoAuth || null,
-      forma_autenticacao: fFormaAuth || null,
-      local_autenticacao: fLocalAuth || null,
-      anotacoes: fAnotacoes || null,
-    })
-    setSaving(false)
-    if (result?.error) { setSaveError(result.error); return }
-    setSheetOpen(false)
-    resetForm()
-    // Refresh happens via server revalidation — trigger router refresh
-    window.location.reload()
+  function openNovo(natureza: string) {
+    setDialogNatureza(natureza)
+    setDialogOpen(true)
   }
 
   return (
     <>
-      {/* ── Top header ── */}
+      {/* ── Top bar ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <FilterTabs
           naturezas={naturezasPresentes}
@@ -307,10 +536,38 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
           total={localLivros.length}
           onChange={setFilterNatureza}
         />
-        <Button onClick={() => { resetForm(); setSheetOpen(true) }} size="sm">
-          <PlusIcon />
-          Novo livro
-        </Button>
+
+        {/* Dropdown agrupado por categoria */}
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button size="sm"><PlusIcon className="size-4" />Novo livro</Button>} />
+          <DropdownMenuContent align="end" className="w-72">
+            {CATEGORIAS.map((cat, i) => (
+              <React.Fragment key={cat.key}>
+                {i > 0 && <DropdownMenuSeparator />}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal uppercase tracking-wider px-2 py-1.5">
+                    {cat.label}
+                  </DropdownMenuLabel>
+                  {NATUREZAS_PRIMARIAS.filter((n) => n.categoria === cat.key).map((n) => (
+                    <DropdownMenuItem
+                      key={n.value}
+                      className="text-sm cursor-pointer"
+                      onClick={() => openNovo(n.value)}
+                    >
+                      <span
+                        className={cn(
+                          'inline-block size-2 rounded-full border shrink-0 mr-1',
+                          n.badgeClass
+                        )}
+                      />
+                      {n.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </React.Fragment>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* ── Grouped sections ── */}
@@ -324,159 +581,38 @@ export function LivrosTabela({ livros, orgaos, orgSlug }: Props) {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           {visibleEntries.map(([natureza, rows]) => (
             <NaturezaSection
               key={natureza}
               natureza={natureza}
               livros={rows}
               orgSlug={orgSlug}
-              onRowClick={openDrawer}
+              onRowClick={(l) => { setSelectedLivro(l); setDrawerOpen(true) }}
             />
           ))}
         </div>
       )}
 
-      {/* ── Drawer ── */}
+      {/* ── Drawer detalhe ── */}
       <LivroDrawer
         livro={selectedLivro}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         orgSlug={orgSlug}
-        onUpdated={() => {
-          // Optimistically update the local livro
-          // Full refresh happens on next navigation
-        }}
       />
 
-      {/* ── "Novo livro" sheet ── */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
-          <SheetHeader>
-            <SheetTitle>Novo livro societário</SheetTitle>
-          </SheetHeader>
-
-          <div className="flex-1 flex flex-col gap-4 overflow-y-auto px-1 py-1">
-            {/* Natureza */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Natureza <span className="text-destructive">*</span>
-              </label>
-              <select
-                value={fNatureza}
-                onChange={(e) => { setFNatureza(e.target.value); setFOrgaoId('') }}
-                className={SEL}
-              >
-                <option value="">Selecione o tipo de livro…</option>
-                {CATEGORIAS.map((cat) => (
-                  <optgroup key={cat.key} label={cat.label}>
-                    {NATUREZAS_PRIMARIAS.filter((n) => n.categoria === cat.key).map((n) => (
-                      <option key={n.value} value={n.value}>{n.label}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-
-            {/* Órgão social — só para "Atas e Mandatos" */}
-            {getNaturezaConfig(fNatureza).exigeOrgao && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">
-                  Órgão social <span className="text-destructive">*</span>
-                </label>
-                <select value={fOrgaoId} onChange={(e) => setFOrgaoId(e.target.value)} className={SEL}>
-                  <option value="">Selecione o órgão…</option>
-                  {orgaos.map((o) => (
-                    <option key={o.id} value={o.id}>{o.nome}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Período */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Período início</label>
-                <Input type="date" value={fPeriodoInicio} onChange={(e) => setFPeriodoInicio(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Período fim</label>
-                <Input type="date" value={fPeriodoFim} onChange={(e) => setFPeriodoFim(e.target.value)} />
-              </div>
-            </div>
-
-            {/* Formato */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Formato <span className="text-destructive">*</span>
-              </label>
-              <select value={fFormato} onChange={(e) => setFFormato(e.target.value as 'digital' | 'fisico' | '')} className={SEL}>
-                <option value="">Selecione…</option>
-                <option value="digital">Digital</option>
-                <option value="fisico">Físico</option>
-              </select>
-            </div>
-
-            {/* Auth */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data de autenticação</label>
-              <Input type="date" value={fDataAuth} onChange={(e) => setFDataAuth(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Órgão autenticador</label>
-              <Input
-                placeholder="Ex.: Junta Comercial de SP"
-                value={fOrgaoAuth}
-                onChange={(e) => setFOrgaoAuth(e.target.value)}
-              />
-            </div>
-
-            {/* Forma de autenticação */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Forma de autenticação</label>
-              <select value={fFormaAuth} onChange={(e) => setFFormaAuth(e.target.value)} className={SEL}>
-                <option value="">Selecione…</option>
-                {FORMAS_AUTENTICACAO.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Local de autenticação */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Local de autenticação</label>
-              <Input
-                placeholder="Ex.: JUCESC, Cartório 1º Ofício…"
-                value={fLocalAuth}
-                onChange={(e) => setFLocalAuth(e.target.value)}
-              />
-            </div>
-
-            {/* Anotações */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Anotações</label>
-              <textarea
-                rows={3}
-                placeholder="Observações livres…"
-                value={fAnotacoes}
-                onChange={(e) => setFAnotacoes(e.target.value)}
-                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 resize-none"
-              />
-            </div>
-
-            {saveError && <p className="text-sm text-destructive">{saveError}</p>}
-          </div>
-
-          <SheetFooter className="pt-4 border-t">
-            <Button variant="outline" onClick={() => setSheetOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving || !fNatureza || !fFormato}>
-              {saving ? 'Salvando…' : 'Salvar'}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      {/* ── Dialog novo livro ── */}
+      {dialogNatureza && (
+        <NovoLivroDialog
+          natureza={dialogNatureza}
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          orgaos={orgaos}
+          orgSlug={orgSlug}
+          onSaved={() => window.location.reload()}
+        />
+      )}
     </>
   )
 }
