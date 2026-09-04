@@ -160,11 +160,17 @@ export async function atualizarPapel(
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  const { error } = await supabase
-    .from('membros')
-    .update({ papel })
-    .eq('id', membroId)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
 
+  const { data: alvo } = await supabase.from('membros').select('organizacao_id').eq('id', membroId).single()
+  if (!alvo) return { error: 'Membro não encontrado' }
+
+  const { data: caller } = await supabase.from('membros').select('papel')
+    .eq('organizacao_id', alvo.organizacao_id).eq('user_id', user.id).single()
+  if (!caller || caller.papel !== 'admin') return { error: 'Sem permissão' }
+
+  const { error } = await supabase.from('membros').update({ papel }).eq('id', membroId)
   if (error) return { error: error.message }
 
   return {}
@@ -173,11 +179,17 @@ export async function atualizarPapel(
 export async function removerMembro(membroId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
 
-  const { error } = await supabase
-    .from('membros')
-    .delete()
-    .eq('id', membroId)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado' }
 
+  const { data: alvo } = await supabase.from('membros').select('organizacao_id').eq('id', membroId).single()
+  if (!alvo) return { error: 'Membro não encontrado' }
+
+  const { data: caller } = await supabase.from('membros').select('papel')
+    .eq('organizacao_id', alvo.organizacao_id).eq('user_id', user.id).single()
+  if (!caller || caller.papel !== 'admin') return { error: 'Sem permissão' }
+
+  const { error } = await supabase.from('membros').delete().eq('id', membroId)
   if (error) return { error: error.message }
 
   return {}

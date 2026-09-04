@@ -331,14 +331,9 @@ export default function MembrosPage() {
                                 Administrador
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleAtualizarPapel(membro.id, 'editor')}
+                                onClick={() => handleAtualizarPapel(membro.id, 'operacional')}
                               >
-                                Editor
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleAtualizarPapel(membro.id, 'viewer')}
-                              >
-                                Visualizador
+                                Equipe Operacional
                               </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>

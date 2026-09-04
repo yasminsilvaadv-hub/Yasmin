@@ -42,62 +42,73 @@ interface NavItem {
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
-function buildNav(orgSlug: string, papel: string): NavItem[] {
+interface NavSections {
+  sop: NavItem[]
+  principal: NavItem[]
+  modulos: NavItem[]
+  mais: NavItem[]
+  config: NavItem[]
+}
+
+function buildNav(orgSlug: string, papel: string): NavSections {
   const b = `/${orgSlug}`
 
-  // Portal do participante SOP — nav simplificada
   if (papel === 'participante_sop') {
-    return [
-      { label: 'Meu Portal',   href: `${b}/portal`,            icon: LayoutDashboard },
-      { label: 'Meus contratos', href: `${b}/portal/contratos`, icon: TrendingUp },
-    ]
+    return {
+      sop: [
+        { label: 'Meu Portal',     href: `${b}/portal`,           icon: LayoutDashboard },
+        { label: 'Meus contratos', href: `${b}/portal/contratos`, icon: TrendingUp },
+      ],
+      principal: [], modulos: [], mais: [], config: [],
+    }
   }
 
-  const nav: NavItem[] = [
-    { label: 'Dashboard',    href: `${b}/dashboard`,    icon: LayoutDashboard },
-    { label: 'Cap Table',    href: `${b}/cap-table`,     icon: PieChart },
-    {
-      label: 'Ativos', icon: Landmark,
-      children: [
-        { label: 'Todos os ativos',    href: `${b}/ativos` },
-        { label: 'Operações',          href: `${b}/ativos/operacoes` },
-        { label: 'Histórico de preço', href: `${b}/ativos/historico-preco` },
-        { label: 'Rodadas',            href: `${b}/ativos/rodadas` },
-      ],
-    },
-    {
-      label: 'Governança', icon: Scale,
-      children: [
-        { label: 'Órgãos sociais',     href: `${b}/governanca/orgaos` },
-        { label: 'Eventos',            href: `${b}/governanca/eventos` },
-        { label: 'Livros societários', href: `${b}/governanca/livros` },
-        { label: 'Organograma',        href: `${b}/governanca/organograma` },
-      ],
-    },
-    {
-      label: 'Equity Plans', icon: TrendingUp,
-      children: [
-        { label: 'Planos',             href: `${b}/equity/planos` },
-        { label: 'Calendários',        href: `${b}/equity/calendarios` },
-        { label: 'Contratos',          href: `${b}/equity/contratos` },
-        { label: 'Posições',           href: `${b}/equity/posicoes` },
-      ],
-    },
-    { label: 'Stakeholders', href: `${b}/stakeholders`, icon: Users },
-    { label: 'Relatórios',   href: `${b}/relatorios`,   icon: BarChart3 },
-  ]
-
-  // Configurações só para admin
-  if (papel === 'admin') {
-    nav.push({
-      label: 'Configurações', icon: Settings2,
-      children: [
-        { label: 'Membros',   href: `${b}/configuracoes/membros` },
-      ],
-    })
+  return {
+    sop: [],
+    principal: [
+      { label: 'Dashboard', href: `${b}/dashboard`, icon: LayoutDashboard },
+      { label: 'Cap Table', href: `${b}/cap-table`,  icon: PieChart },
+    ],
+    modulos: [
+      {
+        label: 'Ativos', icon: Landmark,
+        children: [
+          { label: 'Todos os ativos',    href: `${b}/ativos` },
+          { label: 'Operações',          href: `${b}/ativos/operacoes` },
+          { label: 'Histórico de preço', href: `${b}/ativos/historico-preco` },
+          { label: 'Rodadas',            href: `${b}/ativos/rodadas` },
+        ],
+      },
+      {
+        label: 'Governança', icon: Scale,
+        children: [
+          { label: 'Órgãos sociais',     href: `${b}/governanca/orgaos` },
+          { label: 'Eventos',            href: `${b}/governanca/eventos` },
+          { label: 'Livros societários', href: `${b}/governanca/livros` },
+          { label: 'Organograma',        href: `${b}/governanca/organograma` },
+        ],
+      },
+      {
+        label: 'Equity Plans', icon: TrendingUp,
+        children: [
+          { label: 'Planos',      href: `${b}/equity/planos` },
+          { label: 'Calendários', href: `${b}/equity/calendarios` },
+          { label: 'Contratos',   href: `${b}/equity/contratos` },
+          { label: 'Posições',    href: `${b}/equity/posicoes` },
+        ],
+      },
+    ],
+    mais: [
+      { label: 'Stakeholders', href: `${b}/stakeholders`, icon: Users },
+      { label: 'Relatórios',   href: `${b}/relatorios`,   icon: BarChart3 },
+    ],
+    config: papel === 'admin' ? [
+      {
+        label: 'Configurações', icon: Settings2,
+        children: [{ label: 'Membros', href: `${b}/configuracoes/membros` }],
+      },
+    ] : [],
   }
-
-  return nav
 }
 
 // ─── Logo mark AltoQI ─────────────────────────────────────────────────────────
@@ -137,6 +148,7 @@ export function AppSidebar({
   const pathname = usePathname()
   const nav      = buildNav(orgSlug, papel)
   const isSOP    = papel === 'participante_sop'
+  const { sop, principal, modulos, mais, config } = nav
   const [seletorAberto, setSeletorAberto] = React.useState(false)
 
   const initial = userEmail ? userEmail[0].toUpperCase() : '?'
@@ -244,7 +256,7 @@ export function AppSidebar({
         {/* Nav simplificada para participante SOP */}
         {isSOP && (
           <SidebarMenu className="gap-0.5">
-            {nav.map((item) => {
+            {sop.map((item) => {
               const active = pathname === item.href || pathname.startsWith((item.href ?? '') + '/')
               return (
                 <SidebarMenuItem key={item.label}>
@@ -271,7 +283,7 @@ export function AppSidebar({
         {/* Principal */}
         {!isSOP && <>
         <SidebarMenu className="gap-0.5 mb-4">
-          {nav.slice(0, 2).map((item) => {
+          {principal.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href! + '/')
             return (
               <SidebarMenuItem key={item.label}>
@@ -304,7 +316,7 @@ export function AppSidebar({
 
         {/* Módulos com submenus */}
         <SidebarMenu className="gap-0.5 mb-4">
-          {nav.slice(2, -3).map((item) => {
+          {modulos.map((item) => {
             if (!item.children) return null
             const isGroupActive = item.children.some((c) => pathname.startsWith(c.href))
             return (
@@ -376,7 +388,7 @@ export function AppSidebar({
 
         {/* Stakeholders + Relatórios */}
         <SidebarMenu className="gap-0.5 mb-4">
-          {nav.slice(-3, -1).map((item) => {
+          {mais.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href! + '/')
             return (
               <SidebarMenuItem key={item.label}>
@@ -400,7 +412,8 @@ export function AppSidebar({
           })}
         </SidebarMenu>
 
-        {/* Label: Configurações */}
+        {/* Label: Configurações — só para admin */}
+        {config.length > 0 && <>
         <div className="px-2 pb-2">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 select-none dark:text-sidebar-foreground/30">
             Configurações
@@ -409,7 +422,7 @@ export function AppSidebar({
 
         {/* Configurações com submenus */}
         <SidebarMenu className="gap-0.5">
-          {nav.slice(-1).map((item) => {
+          {config.map((item) => {
             if (!item.children) return null
             const isGroupActive = item.children.some((c) => pathname.startsWith(c.href))
             return (
@@ -471,6 +484,7 @@ export function AppSidebar({
             )
           })}
         </SidebarMenu>
+        </>}
         </>}
       </SidebarContent>
 

@@ -247,47 +247,7 @@ export async function atualizarStatusEvento(payload: {
 
   if (error) return { error: error.message }
 
-  // ── Auto-gera Livro de Atas quando evento é concluído ──────────────────────
-  // Só cria livro se era pendente/cancelado e agora virou concluido
-  if (payload.status === 'concluido' && eventoAtual && eventoAtual.status !== 'concluido') {
-    const TIPO_NATUREZA: Record<string, string> = {
-      ago: 'Livro de Atas de AGO',
-      age: 'Livro de Atas de AGE',
-      rca: 'Livro de Atas de RCA',
-      rd:  'Livro de Atas de RD',
-    }
-    const natureza = TIPO_NATUREZA[eventoAtual.tipo] ?? 'Livro de Atas'
-    const orgId = eventoAtual.organizacao_id
-
-    // Próximo número de ordem para esta natureza
-    const { data: ultimoLivro } = await supabase
-      .from('livros_societarios')
-      .select('numero_ordem')
-      .eq('organizacao_id', orgId)
-      .eq('natureza', natureza)
-      .order('numero_ordem', { ascending: false })
-      .limit(1)
-      .single()
-
-    const proximoNumero = (ultimoLivro?.numero_ordem ?? 0) + 1
-    const dataEvento = eventoAtual.data_hora
-      ? eventoAtual.data_hora.slice(0, 10)
-      : new Date().toISOString().slice(0, 10)
-
-    await supabase.from('livros_societarios').insert({
-      organizacao_id: orgId,
-      natureza,
-      numero_ordem: proximoNumero,
-      formato: 'digital',
-      periodo_inicio: dataEvento,
-      periodo_fim: dataEvento,
-      // orgao_autenticador usado temporariamente como campo de referência do evento
-      orgao_autenticador: `${eventoAtual.nome} — ${eventoAtual.ordem_do_dia ?? ''}`.slice(0, 200),
-    })
-
-    revalidatePath(`/${payload.orgSlug}/governanca/livros`)
-  }
-
+  revalidatePath(`/${payload.orgSlug}/governanca/livros`)
   revalidatePath(`/${payload.orgSlug}/governanca/eventos`)
   return { ok: true }
 }

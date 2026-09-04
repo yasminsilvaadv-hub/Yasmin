@@ -133,7 +133,6 @@ export async function editarPrograma(payload: EditarProgramaPayload) {
     .from('programas_equity')
     .update({ nome: payload.nome, pool: payload.pool })
     .eq('id', payload.id)
-    .eq('organizacao_id', orgId)
 
   if (error) return { error: error.message }
   revalidatePath(`/${payload.orgSlug}/equity/planos`)
@@ -410,7 +409,7 @@ export interface AdicionarHistoricoContratoPayload {
 export async function adicionarHistoricoContrato(payload: AdicionarHistoricoContratoPayload) {
   const supabase = await createClient()
 
-  const { error } = await supabase.from('historico_contratos_equity').insert({
+  const { error } = await supabase.from('historico_contratos').insert({
     contrato_id: payload.contrato_id,
     descricao: payload.descricao,
     qtd_acoes: payload.qtd_acoes ?? null,
