@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/cadastro') || pathname.startsWith('/nova-organizacao') || pathname.startsWith('/auth')
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/cadastro') || pathname.startsWith('/nova-organizacao') || pathname.startsWith('/auth') || pathname.startsWith('/atualizar-senha')
 
   // Redireciona usuário não autenticado para login
   if (!user && !isAuthRoute) {
