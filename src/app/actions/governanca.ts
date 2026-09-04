@@ -233,13 +233,6 @@ export async function atualizarStatusEvento(payload: {
 }) {
   const supabase = await createClient()
 
-  // Busca o evento antes de atualizar para comparar o status atual
-  const { data: eventoAtual } = await supabase
-    .from('eventos')
-    .select('id, nome, tipo, data_hora, status, organizacao_id, ordem_do_dia')
-    .eq('id', payload.evento_id)
-    .single()
-
   const { error } = await supabase
     .from('eventos')
     .update({ status: payload.status })
