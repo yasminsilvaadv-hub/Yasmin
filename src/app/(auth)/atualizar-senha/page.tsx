@@ -11,6 +11,14 @@ export default function AtualizarSenhaPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
+  const [linkExpired, setLinkExpired] = useState(false)
+
+  // Resend link state
+  const [resendEmail, setResendEmail] = useState('')
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [resendError, setResendError] = useState<string | null>(null)
+
+  // Form error
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -22,22 +30,22 @@ export default function AtualizarSenhaPage() {
       setReady(true)
     }
 
-    function markError(msg: string) {
+    function markExpired() {
       if (!settled) {
         settled = true
-        setError(msg)
+        setLinkExpired(true)
       }
     }
 
     // 1. Há um code PKCE na URL (link antigo ou callback falhou) → troca direto no cliente
     const code = new URLSearchParams(window.location.search).get('code')
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchErr }) => {
+      supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
         if (data.session) {
           window.history.replaceState({}, '', '/atualizar-senha')
           markReady()
         } else {
-          markError(exchErr?.message ?? 'Link inválido ou expirado. Solicite um novo convite.')
+          markExpired()
         }
       })
       return
@@ -55,16 +63,29 @@ export default function AtualizarSenhaPage() {
       }
     })
 
-    // 4. Timeout — se após 8 s ainda não há sessão, exibe erro
-    const timer = setTimeout(() => {
-      markError('Link inválido ou expirado. Solicite um novo convite ao administrador.')
-    }, 8000)
+    // 4. Timeout — se após 10 s ainda não há sessão, exibe tela de reenvio
+    const timer = setTimeout(markExpired, 10000)
 
     return () => {
       subscription.unsubscribe()
       clearTimeout(timer)
     }
   }, [])
+
+  async function handleResend(e: React.FormEvent) {
+    e.preventDefault()
+    setResendStatus('sending')
+    setResendError(null)
+    const supabase = createClient()
+    const redirectTo = `${window.location.origin}/auth/callback?next=/atualizar-senha`
+    const { error: err } = await supabase.auth.resetPasswordForEmail(resendEmail, { redirectTo })
+    if (err) {
+      setResendError('Não foi possível enviar o e-mail. Peça ao administrador para reenviar o convite.')
+      setResendStatus('idle')
+    } else {
+      setResendStatus('sent')
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -82,7 +103,6 @@ export default function AtualizarSenhaPage() {
       return
     }
 
-    // Redireciona para o portal correto
     const { data: membro } = await supabase
       .from('membros')
       .select('papel, organizacoes(slug)')
@@ -122,34 +142,70 @@ export default function AtualizarSenhaPage() {
         </div>
 
         <div className="w-full max-w-sm">
-          {!ready ? (
-            <div className="text-center space-y-3">
-              {error ? (
-                <>
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-destructive/10 mx-auto">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
-                    </svg>
+          {linkExpired ? (
+            /* ── Link expirado: formulário de reenvio ── */
+            resendStatus === 'sent' ? (
+              <div className="text-center space-y-3">
+                <div className="flex size-12 items-center justify-center rounded-full bg-green-100 mx-auto">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-foreground">E-mail enviado!</p>
+                <p className="text-sm text-muted-foreground">
+                  Verifique sua caixa de entrada e clique no novo link de acesso.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-8">
+                  <h1 className="text-2xl font-semibold tracking-tight">Link expirado</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Seu link de acesso expirou ou já foi usado. Digite seu e-mail para receber um novo.
+                  </p>
+                </div>
+                <form onSubmit={handleResend} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="resend-email">Seu e-mail</Label>
+                    <Input
+                      id="resend-email"
+                      type="email"
+                      placeholder="voce@empresa.com"
+                      value={resendEmail}
+                      onChange={e => setResendEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                    />
                   </div>
-                  <p className="text-sm font-medium text-foreground">Link inválido ou expirado</p>
-                  <p className="text-sm text-muted-foreground">{error}</p>
-                  <Button variant="outline" size="sm" onClick={() => window.location.href = '/login'} className="mt-2">
-                    Ir para o login
+                  {resendError && (
+                    <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+                      <p className="text-sm text-destructive">{resendError}</p>
+                    </div>
+                  )}
+                  <Button
+                    type="submit"
+                    className="w-full bg-[#111827] hover:bg-[#1f2937] text-white"
+                    size="lg"
+                    disabled={resendStatus === 'sending'}
+                  >
+                    {resendStatus === 'sending' ? 'Enviando…' : 'Receber novo link'}
                   </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-muted mx-auto">
-                    <svg className="animate-spin size-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Verificando seu link de acesso…</p>
-                </>
-              )}
+                </form>
+              </>
+            )
+          ) : !ready ? (
+            /* ── Verificando ── */
+            <div className="text-center space-y-3">
+              <div className="flex size-12 items-center justify-center rounded-xl bg-muted mx-auto">
+                <svg className="animate-spin size-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+              </div>
+              <p className="text-sm text-muted-foreground">Verificando seu link de acesso…</p>
             </div>
           ) : (
+            /* ── Formulário de senha ── */
             <>
               <div className="mb-8">
                 <h1 className="text-2xl font-semibold tracking-tight">Crie sua senha</h1>
