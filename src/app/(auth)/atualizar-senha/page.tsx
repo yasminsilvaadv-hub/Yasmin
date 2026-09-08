@@ -37,17 +37,11 @@ export default function AtualizarSenhaPage() {
       }
     }
 
-    // 1. Há um code PKCE na URL (link antigo ou callback falhou) → troca direto no cliente
+    // 1. Há um code PKCE na URL (link de convite antigo que não passou pelo /auth/callback)
+    //    O Supabase exige troca server-side → redireciona para o callback que troca e volta aqui
     const code = new URLSearchParams(window.location.search).get('code')
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
-        if (data.session) {
-          window.history.replaceState({}, '', '/atualizar-senha')
-          markReady()
-        } else {
-          markExpired()
-        }
-      })
+      window.location.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=/atualizar-senha`)
       return
     }
 
