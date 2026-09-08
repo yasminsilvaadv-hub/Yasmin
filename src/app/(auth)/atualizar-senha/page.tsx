@@ -15,25 +15,55 @@ export default function AtualizarSenhaPage() {
 
   useEffect(() => {
     const supabase = createClient()
+    let settled = false
 
-    // Trata tokens no hash (link de convite/recuperação)
-    const hash = window.location.hash
-    if (hash.includes('access_token') || hash.includes('type=invite') || hash.includes('type=recovery')) {
-      // O cliente Supabase processa o hash automaticamente via onAuthStateChange
+    function markReady() {
+      settled = true
+      setReady(true)
     }
 
+    function markError(msg: string) {
+      if (!settled) {
+        settled = true
+        setError(msg)
+      }
+    }
+
+    // 1. Há um code PKCE na URL (link antigo ou callback falhou) → troca direto no cliente
+    const code = new URLSearchParams(window.location.search).get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchErr }) => {
+        if (data.session) {
+          window.history.replaceState({}, '', '/atualizar-senha')
+          markReady()
+        } else {
+          markError(exchErr?.message ?? 'Link inválido ou expirado. Solicite um novo convite.')
+        }
+      })
+      return
+    }
+
+    // 2. Sessão já existe (veio pelo /auth/callback que trocou o código no servidor)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) markReady()
+    })
+
+    // 3. Evento de auth (hash token ou troca em andamento)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        if (session) setReady(true)
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        markReady()
       }
     })
 
-    // Verifica se já está autenticado (ex: veio do auth/callback)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
-    })
+    // 4. Timeout — se após 8 s ainda não há sessão, exibe erro
+    const timer = setTimeout(() => {
+      markError('Link inválido ou expirado. Solicite um novo convite ao administrador.')
+    }, 8000)
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
+    }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -94,13 +124,30 @@ export default function AtualizarSenhaPage() {
         <div className="w-full max-w-sm">
           {!ready ? (
             <div className="text-center space-y-3">
-              <div className="flex size-12 items-center justify-center rounded-xl bg-muted mx-auto">
-                <svg className="animate-spin size-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-              </div>
-              <p className="text-sm text-muted-foreground">Verificando seu link de acesso…</p>
+              {error ? (
+                <>
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-destructive/10 mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">Link inválido ou expirado</p>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = '/login'} className="mt-2">
+                    Ir para o login
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-muted mx-auto">
+                    <svg className="animate-spin size-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Verificando seu link de acesso…</p>
+                </>
+              )}
             </div>
           ) : (
             <>
