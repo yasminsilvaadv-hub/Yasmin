@@ -70,14 +70,21 @@ export default function AtualizarSenhaPage() {
     e.preventDefault()
     setResendStatus('sending')
     setResendError(null)
-    const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/atualizar-senha`
-    const { error: err } = await supabase.auth.resetPasswordForEmail(resendEmail, { redirectTo })
-    if (err) {
-      setResendError('Não foi possível enviar o e-mail. Peça ao administrador para reenviar o convite.')
+
+    try {
+      const res = await fetch('/api/auth/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resendEmail }),
+      })
+      if (res.ok) {
+        setResendStatus('sent')
+      } else {
+        throw new Error('erro')
+      }
+    } catch {
+      setResendError('Não conseguimos enviar um novo link. Peça ao administrador para reenviar o convite pelo painel.')
       setResendStatus('idle')
-    } else {
-      setResendStatus('sent')
     }
   }
 
