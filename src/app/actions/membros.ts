@@ -141,8 +141,13 @@ export async function convidarParticipanteSOP(
     if (!existingUser) return { error: inviteErr?.message ?? 'Erro ao convidar' }
     userId = existingUser.id
 
-    // Envia e-mail de redefinição de senha para quem já tem conta confirmada
-    await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    // Admin generateLink evita o problema de PKCE verifier que ocorre com resetPasswordForEmail
+    // chamado server-side: o link gerado não requer code_verifier no browser do participante
+    await adminClient.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo },
+    })
   }
 
   const { error } = await supabase.from('membros').upsert(

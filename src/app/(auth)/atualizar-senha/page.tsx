@@ -37,33 +37,36 @@ export default function AtualizarSenhaPage() {
       }
     }
 
-    // 1. Há um code PKCE na URL (link de convite antigo que não passou pelo /auth/callback)
-    //    O Supabase exige troca server-side → redireciona para o callback que troca e volta aqui
-    const code = new URLSearchParams(window.location.search).get('code')
-    if (code) {
-      window.location.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=/atualizar-senha`)
-      return
-    }
-
-    // 2. Sessão já existe (veio pelo /auth/callback que trocou o código no servidor)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) markReady()
     })
 
-    // 3. Evento de auth (hash token ou troca em andamento)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+    // 1. Código PKCE na URL → tenta troca no cliente (funciona para links gerados pelo admin)
+    //    Se falhar, tenta via /auth/callback no servidor
+    const code = new URLSearchParams(window.location.search).get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
+        if (data.session) {
+          window.history.replaceState({}, '', '/atualizar-senha')
+          markReady()
+        } else {
+          window.location.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=/atualizar-senha`)
+        }
+      })
+      return () => subscription.unsubscribe()
+    }
+
+    // 2. Sessão já existe (veio pelo /auth/callback)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         markReady()
+      } else {
+        // Sem código e sem sessão → expira rápido
+        setTimeout(markExpired, 3000)
       }
     })
 
-    // 4. Timeout — se após 10 s ainda não há sessão, exibe tela de reenvio
-    const timer = setTimeout(markExpired, 10000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timer)
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
   async function handleResend(e: React.FormEvent) {
