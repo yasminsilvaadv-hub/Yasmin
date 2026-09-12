@@ -141,10 +141,10 @@ export async function convidarParticipanteSOP(
     if (!existingUser) return { error: inviteErr?.message ?? 'Erro ao convidar' }
     userId = existingUser.id
 
-    // Admin generateLink evita o problema de PKCE verifier que ocorre com resetPasswordForEmail
-    // chamado server-side: o link gerado não requer code_verifier no browser do participante
+    // Para usuários confirmados, inviteUserByEmail falha.
+    // Enviamos magic link via admin (não usa PKCE — sem code_verifier no browser).
     await adminClient.auth.admin.generateLink({
-      type: 'recovery',
+      type: 'magiclink',
       email,
       options: { redirectTo },
     })
